@@ -43,22 +43,18 @@ export default function Home() {
 
   useEffect(() => {
     loadData();
-
-    // Poll every 30s for updates from other device
     const interval = setInterval(loadData, 30000);
     return () => clearInterval(interval);
   }, [loadData]);
 
-  // Set up notifications
   useEffect(() => {
     setupNotifications().then(setNotificationsEnabled);
   }, []);
 
-  // Update feed reminder when feedings change
   useEffect(() => {
     if (feedings.length > 0) {
       const lastFeed = new Date(feedings[0].fed_at);
-      startFeedReminder(lastFeed, 180); // remind after 3 hours
+      startFeedReminder(lastFeed, 180);
     }
   }, [feedings]);
 
@@ -103,74 +99,79 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-violet-400 text-lg">Loading...</div>
+      <div className="flex-1 flex flex-col items-center justify-center gap-3">
+        <div className="text-4xl animate-bounce">{"\uD83C\uDF7C"}</div>
+        <div className="text-brown-lighter font-semibold">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col max-w-md mx-auto w-full">
+    <div className="flex-1 flex flex-col max-w-md mx-auto w-full pb-6">
       {/* Header */}
-      <div className="px-4 pt-6 pb-4">
-        <h1 className="text-2xl font-bold">
-          Claire <span className="text-violet-500">Tracker</span>
-        </h1>
-        <p className="text-sm text-gray-400">
-          {new Date().toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-          })}
-        </p>
-        {!notificationsEnabled && (
-          <button
-            onClick={async () => {
-              const enabled = await setupNotifications();
-              setNotificationsEnabled(enabled);
-            }}
-            className="mt-2 text-xs text-violet-500 underline"
-          >
-            Enable notifications
-          </button>
-        )}
+      <div className="px-5 pt-8 pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-extrabold text-brown">
+              Hi, Claire {"\uD83C\uDF38"}
+            </h1>
+            <p className="text-sm font-medium text-brown-lighter mt-0.5">
+              {new Date().toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              })}
+            </p>
+          </div>
+          {!notificationsEnabled && (
+            <button
+              onClick={async () => {
+                const enabled = await setupNotifications();
+                setNotificationsEnabled(enabled);
+              }}
+              className="text-xs font-bold text-peach-dark bg-peach/30 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+            >
+              {"\uD83D\uDD14"} Notify
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Dashboard */}
-      <div className="px-4">
+      <div className="px-5 pt-3">
         <Dashboard feedings={feedings} diapers={diapers} />
       </div>
 
       {/* Action buttons */}
-      <div className="px-4 py-4">
+      <div className="px-5 py-5">
         <div className="grid grid-cols-3 gap-3">
           <button
             onClick={() => setModal("bottle")}
-            className="flex flex-col items-center gap-1 py-4 bg-violet-600 text-white rounded-2xl active:bg-violet-700 shadow-md"
+            className="flex flex-col items-center gap-2 py-5 bg-peach/50 rounded-[20px] active:scale-95 transition-transform shadow-[0_2px_10px_rgba(255,180,160,0.2)]"
           >
-            <span className="text-2xl">{"\uD83C\uDF7C"}</span>
-            <span className="text-xs font-semibold">Bottle</span>
+            <span className="text-3xl">{"\uD83C\uDF7C"}</span>
+            <span className="text-xs font-extrabold text-brown">Bottle</span>
           </button>
           <button
             onClick={() => setModal("breast")}
-            className="flex flex-col items-center gap-1 py-4 bg-pink-500 text-white rounded-2xl active:bg-pink-600 shadow-md"
+            className="flex flex-col items-center gap-2 py-5 bg-blush/40 rounded-[20px] active:scale-95 transition-transform shadow-[0_2px_10px_rgba(240,157,170,0.2)]"
           >
-            <span className="text-2xl">{"\uD83E\uDD31"}</span>
-            <span className="text-xs font-semibold">Snack</span>
+            <span className="text-3xl">{"\uD83E\uDD31"}</span>
+            <span className="text-xs font-extrabold text-brown">Snack</span>
           </button>
           <button
             onClick={() => setModal("diaper")}
-            className="flex flex-col items-center gap-1 py-4 bg-sky-500 text-white rounded-2xl active:bg-sky-600 shadow-md"
+            className="flex flex-col items-center gap-2 py-5 bg-mint/40 rounded-[20px] active:scale-95 transition-transform shadow-[0_2px_10px_rgba(141,212,176,0.2)]"
           >
-            <span className="text-2xl">{"\uD83D\uDC76"}</span>
-            <span className="text-xs font-semibold">Diaper</span>
+            <span className="text-3xl">{"\uD83D\uDC76"}</span>
+            <span className="text-xs font-extrabold text-brown">Diaper</span>
           </button>
         </div>
       </div>
 
       {/* Timeline */}
-      <div className="flex-1 px-4 pb-6 overflow-y-auto">
-        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">
+      <div className="flex-1 px-5 overflow-y-auto hide-scrollbar">
+        <h2 className="text-xs font-extrabold text-brown-lighter uppercase tracking-wider mb-3">
           Today&apos;s Log
         </h2>
         <Timeline

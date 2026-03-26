@@ -7,33 +7,44 @@ interface Props {
 
 export default function DiaperModal({ onSubmit, onClose }: Props) {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
-      <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-md p-6 pb-10">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold">Diaper Change</h2>
-          <button onClick={onClose} className="text-gray-400 text-2xl">
-            &times;
-          </button>
+    <div
+      className="fixed inset-0 bg-brown/30 backdrop-blur-sm flex items-end justify-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-cream rounded-t-[28px] w-full max-w-md p-6 pb-8 animate-[slideUp_0.25s_ease-out]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-10 h-1 bg-brown-lighter/30 rounded-full mx-auto mb-5" />
+
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 bg-mint/50 rounded-2xl flex items-center justify-center text-2xl">
+            {"\uD83D\uDC76"}
+          </div>
+          <h2 className="text-xl font-extrabold text-brown">Diaper Change</h2>
         </div>
 
         <div className="flex flex-col gap-3">
           <button
             onClick={() => onSubmit("wet")}
-            className="py-5 bg-blue-100 text-blue-700 rounded-2xl text-lg font-semibold active:bg-blue-200"
+            className="flex items-center gap-4 py-5 px-5 bg-sky/30 rounded-2xl active:scale-[0.98] transition-transform"
           >
-            Wet
+            <span className="text-3xl">{"\uD83D\uDCA7"}</span>
+            <span className="text-lg font-bold text-brown">Wet</span>
           </button>
           <button
             onClick={() => onSubmit("dirty")}
-            className="py-5 bg-amber-100 text-amber-700 rounded-2xl text-lg font-semibold active:bg-amber-200"
+            className="flex items-center gap-4 py-5 px-5 bg-sunny/40 rounded-2xl active:scale-[0.98] transition-transform"
           >
-            Dirty
+            <span className="text-3xl">{"\uD83D\uDCA9"}</span>
+            <span className="text-lg font-bold text-brown">Dirty</span>
           </button>
           <button
             onClick={() => onSubmit("both")}
-            className="py-5 bg-green-100 text-green-700 rounded-2xl text-lg font-semibold active:bg-green-200"
+            className="flex items-center gap-4 py-5 px-5 bg-mint/30 rounded-2xl active:scale-[0.98] transition-transform"
           >
-            Both
+            <span className="text-3xl">{"\uD83D\uDCA7\uD83D\uDCA9"}</span>
+            <span className="text-lg font-bold text-brown">Both</span>
           </button>
         </div>
       </div>

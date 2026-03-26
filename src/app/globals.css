@@ -1,19 +1,53 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --background: #faf5ff;
-  --foreground: #1e1b2e;
+  --background: #FFF8F0;
+  --foreground: #3D2C2C;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-cream: #FFF8F0;
+  --color-cream-dark: #FFF0E6;
+  --color-peach: #FFD6CC;
+  --color-peach-dark: #FFB8A8;
+  --color-blush: #F6B8C1;
+  --color-blush-dark: #F09DAA;
+  --color-lavender: #D7B4F3;
+  --color-lavender-light: #EDE0FA;
+  --color-mint: #B8E8D0;
+  --color-mint-dark: #8DD4B0;
+  --color-sky: #B8D8F0;
+  --color-sky-dark: #8DC0E0;
+  --color-sunny: #FFEE8C;
+  --color-sunny-dark: #FFE45C;
+  --color-rose: #F4C2C2;
+  --color-brown: #3D2C2C;
+  --color-brown-light: #6B5454;
+  --color-brown-lighter: #9B8585;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Nunito', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  overscroll-behavior: none;
+}
+
+/* Smooth scrolling on mobile */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hide scrollbar but keep scrollable */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

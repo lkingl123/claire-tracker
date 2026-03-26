@@ -4,8 +4,8 @@
   "description": "Baby feeding and diaper tracker for Claire",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#faf5ff",
-  "theme_color": "#7c3aed",
+  "background_color": "#FFF8F0",
+  "theme_color": "#FFD6CC",
   "icons": [
     {
       "src": "/icon-192.png",

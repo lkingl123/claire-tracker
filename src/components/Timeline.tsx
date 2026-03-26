@@ -33,14 +33,20 @@ export default function Timeline({
 
   if (entries.length === 0) {
     return (
-      <div className="text-center text-gray-400 py-8">
-        No entries yet today. Start logging!
+      <div className="text-center py-12">
+        <div className="text-4xl mb-3">{"\uD83C\uDF1F"}</div>
+        <div className="text-brown-lighter font-semibold">
+          No entries yet today
+        </div>
+        <div className="text-brown-lighter/60 text-sm mt-1">
+          Tap a button above to start logging!
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {entries.map((entry) => {
         if (entry.kind === "feeding") {
           const f = entry.data;
@@ -48,32 +54,30 @@ export default function Timeline({
           return (
             <div
               key={`f-${f.id}`}
-              className="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm"
+              className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-[0_1px_6px_rgba(0,0,0,0.04)]"
             >
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${
-                  isBottle
-                    ? "bg-violet-100 text-violet-600"
-                    : "bg-pink-100 text-pink-500"
+                className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl ${
+                  isBottle ? "bg-peach/40" : "bg-blush/30"
                 }`}
               >
                 {isBottle ? "\uD83C\uDF7C" : "\uD83E\uDD31"}
               </div>
-              <div className="flex-1">
-                <div className="font-semibold text-sm">
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-sm text-brown">
                   {isBottle
-                    ? `Bottle - ${f.amount_ml}ml`
-                    : `Breast Snack - ${f.duration_minutes}min`}
+                    ? `Bottle - ${f.amount_ml} ml`
+                    : `Snack - ${f.duration_minutes} min`}
                 </div>
-                <div className="text-xs text-gray-400">
+                <div className="text-xs font-medium text-brown-lighter">
                   {format(entry.time, "h:mm a")}
                 </div>
               </div>
               <button
                 onClick={() => onDeleteFeeding(f.id)}
-                className="text-gray-300 hover:text-red-400 text-sm px-2"
+                className="w-8 h-8 rounded-full bg-rose/20 flex items-center justify-center text-brown-lighter text-xs active:scale-90 transition-transform"
               >
-                &times;
+                {"\u2715"}
               </button>
             </div>
           );
@@ -87,25 +91,35 @@ export default function Timeline({
                 : "\uD83D\uDCA7\uD83D\uDCA9";
           const label =
             d.type === "wet" ? "Wet" : d.type === "dirty" ? "Dirty" : "Both";
+          const bg =
+            d.type === "wet"
+              ? "bg-sky/30"
+              : d.type === "dirty"
+                ? "bg-sunny/40"
+                : "bg-mint/30";
           return (
             <div
               key={`d-${d.id}`}
-              className="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm"
+              className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-[0_1px_6px_rgba(0,0,0,0.04)]"
             >
-              <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-lg">
+              <div
+                className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl ${bg}`}
+              >
                 {emoji}
               </div>
-              <div className="flex-1">
-                <div className="font-semibold text-sm">Diaper - {label}</div>
-                <div className="text-xs text-gray-400">
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-sm text-brown">
+                  Diaper - {label}
+                </div>
+                <div className="text-xs font-medium text-brown-lighter">
                   {format(entry.time, "h:mm a")}
                 </div>
               </div>
               <button
                 onClick={() => onDeleteDiaper(d.id)}
-                className="text-gray-300 hover:text-red-400 text-sm px-2"
+                className="w-8 h-8 rounded-full bg-rose/20 flex items-center justify-center text-brown-lighter text-xs active:scale-90 transition-transform"
               >
-                &times;
+                {"\u2715"}
               </button>
             </div>
           );
