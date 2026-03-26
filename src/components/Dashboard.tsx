@@ -13,6 +13,10 @@ interface Props {
   diapers: Diaper[];
 }
 
+function mlToOz(ml: number): string {
+  return (ml / 29.5735).toFixed(1);
+}
+
 export default function Dashboard({ feedings, diapers }: Props) {
   const progress = getFeedingProgress(feedings);
   const nextFeed = predictNextFeed(feedings);
@@ -54,6 +58,9 @@ export default function Dashboard({ feedings, diapers }: Props) {
               {progress.totalMl}
               <span className="text-lg font-semibold text-brown-lighter ml-1">
                 ml
+              </span>
+              <span className="text-sm font-semibold text-brown-lighter/50 ml-2">
+                ({mlToOz(progress.totalMl)} oz)
               </span>
             </div>
             <div className="text-sm text-brown-lighter mt-1">

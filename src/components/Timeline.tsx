@@ -3,6 +3,10 @@
 import { Feeding, Diaper } from "@/lib/types";
 import { format } from "date-fns";
 
+function mlToOz(ml: number): string {
+  return (ml / 29.5735).toFixed(1);
+}
+
 type TimelineEntry =
   | { kind: "feeding"; data: Feeding; time: Date }
   | { kind: "diaper"; data: Diaper; time: Date };
@@ -66,7 +70,7 @@ export default function Timeline({
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-sm text-brown">
                   {isBottle
-                    ? `Bottle - ${f.amount_ml} ml`
+                    ? `Bottle - ${f.amount_ml} ml (${mlToOz(f.amount_ml || 0)} oz)`
                     : `Snack - ${f.duration_minutes} min`}
                 </div>
                 <div className="text-xs font-medium text-brown-lighter">

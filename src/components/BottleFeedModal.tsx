@@ -9,6 +9,11 @@ interface Props {
 
 const QUICK_ML = [15, 30, 45, 60, 75, 90];
 
+function mlToOz(ml: number): string {
+  const oz = ml / 29.5735;
+  return oz.toFixed(1);
+}
+
 export default function BottleFeedModal({ onSubmit, onClose }: Props) {
   const [ml, setMl] = useState<number>(60);
 
@@ -36,13 +41,14 @@ export default function BottleFeedModal({ onSubmit, onClose }: Props) {
             <button
               key={v}
               onClick={() => setMl(v)}
-              className={`py-3.5 rounded-2xl text-base font-bold transition-all ${
+              className={`py-3 rounded-2xl text-base font-bold transition-all flex flex-col items-center gap-0.5 ${
                 ml === v
                   ? "bg-peach text-brown shadow-[0_2px_8px_rgba(255,180,160,0.4)] scale-[1.02]"
                   : "bg-white text-brown-light shadow-[0_1px_4px_rgba(0,0,0,0.04)]"
               }`}
             >
-              {v} ml
+              <span>{v} ml</span>
+              <span className="text-[10px] opacity-60">{mlToOz(v)} oz</span>
             </button>
           ))}
         </div>
@@ -56,10 +62,15 @@ export default function BottleFeedModal({ onSubmit, onClose }: Props) {
             -
           </button>
           <div className="flex-1 text-center">
-            <span className="text-5xl font-extrabold text-brown">{ml}</span>
-            <span className="text-lg font-semibold text-brown-lighter ml-1">
-              ml
-            </span>
+            <div>
+              <span className="text-5xl font-extrabold text-brown">{ml}</span>
+              <span className="text-lg font-semibold text-brown-lighter ml-1">
+                ml
+              </span>
+            </div>
+            <div className="text-sm font-semibold text-brown-lighter/60 mt-0.5">
+              {mlToOz(ml)} oz
+            </div>
           </div>
           <button
             onClick={() => setMl(ml + 5)}
