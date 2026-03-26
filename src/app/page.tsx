@@ -56,7 +56,7 @@ export default function Home() {
   useEffect(() => {
     if (feedings.length > 0) {
       const lastFeed = new Date(feedings[0].fed_at);
-      startFeedReminder(lastFeed, 180);
+      startFeedReminder(lastFeed, 150); // 2.5 hours
     }
   }, [feedings]);
 

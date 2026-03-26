@@ -17,9 +17,46 @@ function mlToOz(ml: number): string {
   return (ml / 29.5735).toFixed(1);
 }
 
+// Feed urgency thresholds (in minutes)
+const FEED_OK = 120; // under 2h = green/good
+const FEED_SOON = 150; // 2-2.5h = yellow/soon
+// above 2.5h = red/overdue
+
+function getFeedUrgency(minutesSinceLastFeed: number | null): {
+  color: string;
+  bg: string;
+  label: string;
+  pulse: boolean;
+} {
+  if (minutesSinceLastFeed === null)
+    return { color: "text-brown-lighter", bg: "bg-white", label: "", pulse: false };
+
+  if (minutesSinceLastFeed < FEED_OK)
+    return {
+      color: "text-green-700",
+      bg: "bg-green-100",
+      label: "All good",
+      pulse: false,
+    };
+  if (minutesSinceLastFeed < FEED_SOON)
+    return {
+      color: "text-amber-700",
+      bg: "bg-amber-100",
+      label: "Feed soon",
+      pulse: false,
+    };
+  return {
+    color: "text-red-600",
+    bg: "bg-red-100",
+    label: "Feed now!",
+    pulse: true,
+  };
+}
+
 export default function Dashboard({ feedings, diapers }: Props) {
   const progress = getFeedingProgress(feedings);
   const nextFeed = predictNextFeed(feedings);
+  const urgency = getFeedUrgency(progress.timeSinceLastFeed);
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
@@ -43,6 +80,28 @@ export default function Dashboard({ feedings, diapers }: Props) {
 
   return (
     <div className="space-y-3">
+      {/* Feed urgency banner */}
+      {progress.lastFeedTime && progress.timeSinceLastFeed! >= FEED_OK && (
+        <div
+          className={`${urgency.bg} rounded-2xl p-4 flex items-center gap-3 ${urgency.pulse ? "animate-pulse" : ""}`}
+        >
+          <span className="text-2xl">
+            {progress.timeSinceLastFeed! >= FEED_SOON
+              ? "\u26A0\uFE0F"
+              : "\u23F0"}
+          </span>
+          <div className="flex-1">
+            <div className={`text-sm font-extrabold ${urgency.color}`}>
+              {urgency.label}
+            </div>
+            <div className="text-xs font-medium text-brown-light">
+              Last fed {formatTimeSince(progress.timeSinceLastFeed!)} &middot;
+              Recommended every 2-3h
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Last feed status - hero card */}
       <div className="bg-white rounded-[20px] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
         <div className="flex items-center gap-2 mb-3">
@@ -72,7 +131,9 @@ export default function Dashboard({ feedings, diapers }: Props) {
           <div className="text-right">
             {progress.lastFeedTime ? (
               <div className="space-y-1">
-                <div className="inline-block bg-peach/40 text-brown-light text-sm font-semibold px-3 py-1 rounded-full">
+                <div
+                  className={`inline-block ${urgency.bg} ${urgency.color} text-sm font-semibold px-3 py-1 rounded-full`}
+                >
                   {formatTimeSince(progress.timeSinceLastFeed!)}
                 </div>
                 {nextFeed && (

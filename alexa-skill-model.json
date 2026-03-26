@@ -1,0 +1,143 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "claire tracker",
+      "intents": [
+        {
+          "name": "LastFeedIntent",
+          "samples": [
+            "when was the last feed",
+            "when did claire eat",
+            "when was she last fed",
+            "last feed",
+            "last feeding",
+            "how long since last feed",
+            "how long ago did she eat",
+            "when did she last eat"
+          ]
+        },
+        {
+          "name": "DailyStatusIntent",
+          "samples": [
+            "how is claire doing",
+            "how is claire doing today",
+            "daily status",
+            "today's summary",
+            "give me a summary",
+            "how much has she eaten",
+            "how much has she eaten today",
+            "status update",
+            "what's the status"
+          ]
+        },
+        {
+          "name": "LogBottleIntent",
+          "slots": [
+            {
+              "name": "amount",
+              "type": "AMAZON.NUMBER",
+              "samples": [
+                "{amount}",
+                "{amount} milliliters",
+                "{amount} ml"
+              ]
+            }
+          ],
+          "samples": [
+            "log a bottle",
+            "log a {amount} milliliter bottle",
+            "log {amount} milliliters",
+            "log {amount} ml bottle",
+            "log bottle {amount}",
+            "bottle feed {amount} milliliters",
+            "she drank {amount} milliliters",
+            "she had {amount} ml",
+            "fed her {amount} ml",
+            "log a bottle feed of {amount}",
+            "bottle {amount}"
+          ]
+        },
+        {
+          "name": "LogSnackIntent",
+          "slots": [
+            {
+              "name": "duration",
+              "type": "AMAZON.NUMBER",
+              "samples": [
+                "{duration}",
+                "{duration} minutes"
+              ]
+            }
+          ],
+          "samples": [
+            "log a snack",
+            "log a breast snack",
+            "log a {duration} minute snack",
+            "breast snack {duration} minutes",
+            "she snacked for {duration} minutes",
+            "snack for {duration} minutes",
+            "log snack {duration}"
+          ]
+        },
+        {
+          "name": "LogDiaperIntent",
+          "slots": [
+            {
+              "name": "diaperType",
+              "type": "DiaperType",
+              "samples": [
+                "{diaperType}",
+                "{diaperType} diaper"
+              ]
+            }
+          ],
+          "samples": [
+            "log a diaper",
+            "log a {diaperType} diaper",
+            "diaper change",
+            "{diaperType} diaper",
+            "changed her diaper it was {diaperType}",
+            "she had a {diaperType} diaper",
+            "log diaper {diaperType}"
+          ]
+        },
+        {
+          "name": "DiaperCountIntent",
+          "samples": [
+            "how many diapers",
+            "how many diapers today",
+            "diaper count",
+            "how many diaper changes",
+            "diaper status"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        }
+      ],
+      "types": [
+        {
+          "name": "DiaperType",
+          "values": [
+            { "name": { "value": "wet" } },
+            { "name": { "value": "dirty" } },
+            { "name": { "value": "both" } }
+          ]
+        }
+      ]
+    }
+  }
+}
