@@ -14,11 +14,11 @@ export default function BreastSnackModal({ onSubmit, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-brown/30 backdrop-blur-sm flex items-end justify-center z-50"
+      className="fixed inset-0 bg-brown/30 backdrop-blur-sm flex items-end sm:items-center justify-center z-50"
       onClick={onClose}
     >
       <div
-        className="bg-cream rounded-t-[28px] w-full max-w-md p-6 pb-8 animate-[slideUp_0.25s_ease-out]"
+        className="bg-cream rounded-t-[28px] sm:rounded-[28px] w-full max-w-md p-6 pb-8 animate-[slideUp_0.25s_ease-out]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="w-10 h-1 bg-brown-lighter/30 rounded-full mx-auto mb-5" />
