@@ -38,6 +38,14 @@ body {
   overscroll-behavior: none;
 }
 
+button {
+  cursor: pointer;
+}
+
+a {
+  cursor: pointer;
+}
+
 /* Smooth scrolling on mobile */
 * {
   -webkit-overflow-scrolling: touch;
