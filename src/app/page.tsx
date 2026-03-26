@@ -4,8 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { Feeding, Diaper } from "@/lib/types";
 import { setupNotifications, startFeedReminder } from "@/lib/notifications";
+import { isToday, startOfDay, endOfDay } from "date-fns";
 import Dashboard from "@/components/Dashboard";
 import Timeline from "@/components/Timeline";
+import DateNav from "@/components/DateNav";
 import BottleFeedModal from "@/components/BottleFeedModal";
 import BreastSnackModal from "@/components/BreastSnackModal";
 import DiaperModal from "@/components/DiaperModal";
@@ -18,45 +20,55 @@ export default function Home() {
   const [modal, setModal] = useState<Modal>(null);
   const [loading, setLoading] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  const isViewingToday = isToday(selectedDate);
 
   const loadData = useCallback(async () => {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    const dayStart = startOfDay(selectedDate).toISOString();
+    const dayEnd = endOfDay(selectedDate).toISOString();
 
     const [feedRes, diaperRes] = await Promise.all([
       supabase
         .from("feedings")
         .select("*")
-        .gte("fed_at", todayStart.toISOString())
+        .gte("fed_at", dayStart)
+        .lte("fed_at", dayEnd)
         .order("fed_at", { ascending: false }),
       supabase
         .from("diapers")
         .select("*")
-        .gte("changed_at", todayStart.toISOString())
+        .gte("changed_at", dayStart)
+        .lte("changed_at", dayEnd)
         .order("changed_at", { ascending: false }),
     ]);
 
     if (feedRes.data) setFeedings(feedRes.data);
     if (diaperRes.data) setDiapers(diaperRes.data);
     setLoading(false);
-  }, []);
+  }, [selectedDate]);
 
   useEffect(() => {
+    setLoading(true);
     loadData();
-    const interval = setInterval(loadData, 30000);
-    return () => clearInterval(interval);
-  }, [loadData]);
+
+    // Only poll if viewing today
+    if (isViewingToday) {
+      const interval = setInterval(loadData, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [loadData, isViewingToday]);
 
   useEffect(() => {
     setupNotifications().then(setNotificationsEnabled);
   }, []);
 
   useEffect(() => {
-    if (feedings.length > 0) {
+    if (feedings.length > 0 && isViewingToday) {
       const lastFeed = new Date(feedings[0].fed_at);
       startFeedReminder(lastFeed, 180);
     }
-  }, [feedings]);
+  }, [feedings, isViewingToday]);
 
   const handleBottleFeed = async (ml: number) => {
     setModal(null);
@@ -111,18 +123,9 @@ export default function Home() {
       {/* Header */}
       <div className="px-5 pt-8 pb-2">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-extrabold text-brown">
-              Hi, Claire {"\uD83C\uDF38"}
-            </h1>
-            <p className="text-sm font-medium text-brown-lighter mt-0.5">
-              {new Date().toLocaleDateString("en-US", {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-              })}
-            </p>
-          </div>
+          <h1 className="text-2xl font-extrabold text-brown">
+            Hi, Claire {"\uD83C\uDF38"}
+          </h1>
           {!notificationsEnabled && (
             <button
               onClick={async () => {
@@ -137,42 +140,61 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Date navigator */}
+      <div className="px-5 py-3">
+        <DateNav date={selectedDate} onChange={setSelectedDate} />
+      </div>
+
       {/* Dashboard */}
-      <div className="px-5 pt-3">
+      <div className="px-5 pt-1">
         <Dashboard feedings={feedings} diapers={diapers} />
       </div>
 
-      {/* Action buttons */}
-      <div className="px-5 py-5">
-        <div className="grid grid-cols-3 gap-3">
+      {/* Action buttons - only show on today */}
+      {isViewingToday && (
+        <div className="px-5 py-5">
+          <div className="grid grid-cols-3 gap-3">
+            <button
+              onClick={() => setModal("bottle")}
+              className="flex flex-col items-center gap-2 py-5 bg-peach/50 rounded-[20px] active:scale-95 transition-transform shadow-[0_2px_10px_rgba(255,180,160,0.2)]"
+            >
+              <span className="text-3xl">{"\uD83C\uDF7C"}</span>
+              <span className="text-xs font-extrabold text-brown">Bottle</span>
+            </button>
+            <button
+              onClick={() => setModal("breast")}
+              className="flex flex-col items-center gap-2 py-5 bg-blush/40 rounded-[20px] active:scale-95 transition-transform shadow-[0_2px_10px_rgba(240,157,170,0.2)]"
+            >
+              <span className="text-3xl">{"\uD83E\uDD31"}</span>
+              <span className="text-xs font-extrabold text-brown">Snack</span>
+            </button>
+            <button
+              onClick={() => setModal("diaper")}
+              className="flex flex-col items-center gap-2 py-5 bg-mint/40 rounded-[20px] active:scale-95 transition-transform shadow-[0_2px_10px_rgba(141,212,176,0.2)]"
+            >
+              <span className="text-3xl">{"\uD83D\uDC76"}</span>
+              <span className="text-xs font-extrabold text-brown">Diaper</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Back to today button when viewing history */}
+      {!isViewingToday && (
+        <div className="px-5 py-4">
           <button
-            onClick={() => setModal("bottle")}
-            className="flex flex-col items-center gap-2 py-5 bg-peach/50 rounded-[20px] active:scale-95 transition-transform shadow-[0_2px_10px_rgba(255,180,160,0.2)]"
+            onClick={() => setSelectedDate(new Date())}
+            className="w-full py-3 bg-peach/40 text-brown rounded-2xl text-sm font-bold active:scale-[0.98] transition-transform"
           >
-            <span className="text-3xl">{"\uD83C\uDF7C"}</span>
-            <span className="text-xs font-extrabold text-brown">Bottle</span>
-          </button>
-          <button
-            onClick={() => setModal("breast")}
-            className="flex flex-col items-center gap-2 py-5 bg-blush/40 rounded-[20px] active:scale-95 transition-transform shadow-[0_2px_10px_rgba(240,157,170,0.2)]"
-          >
-            <span className="text-3xl">{"\uD83E\uDD31"}</span>
-            <span className="text-xs font-extrabold text-brown">Snack</span>
-          </button>
-          <button
-            onClick={() => setModal("diaper")}
-            className="flex flex-col items-center gap-2 py-5 bg-mint/40 rounded-[20px] active:scale-95 transition-transform shadow-[0_2px_10px_rgba(141,212,176,0.2)]"
-          >
-            <span className="text-3xl">{"\uD83D\uDC76"}</span>
-            <span className="text-xs font-extrabold text-brown">Diaper</span>
+            {"\u2190"} Back to Today
           </button>
         </div>
-      </div>
+      )}
 
       {/* Timeline */}
       <div className="flex-1 px-5 overflow-y-auto hide-scrollbar">
         <h2 className="text-xs font-extrabold text-brown-lighter uppercase tracking-wider mb-3">
-          Today&apos;s Log
+          {isViewingToday ? "Today\u0027s Log" : "Log"}
         </h2>
         <Timeline
           feedings={feedings}
