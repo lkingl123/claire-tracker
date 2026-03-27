@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const verifier = require("alexa-verifier");
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -174,7 +176,18 @@ async function handleDiaperCount() {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Verify Alexa request signature
+    const certUrl = request.headers.get("signaturecertchainurl") || "";
+    const signature = request.headers.get("signature-256") || request.headers.get("signature") || "";
+    const rawBody = await request.text();
+
+    try {
+      await verifier(certUrl, signature, rawBody);
+    } catch {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+
+    const body = JSON.parse(rawBody);
     const requestType = body?.request?.type;
     const intentName = body?.request?.intent?.name;
     const slots = body?.request?.intent?.slots || {};
