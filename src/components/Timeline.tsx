@@ -93,6 +93,7 @@ export default function Timeline({
               : d.type === "dirty"
                 ? "\uD83D\uDCA9"
                 : "\uD83D\uDCA7\uD83D\uDCA9";
+          const isBoth = d.type === "both";
           const label =
             d.type === "wet" ? "Wet" : d.type === "dirty" ? "Dirty" : "Both";
           const bg =
@@ -107,7 +108,7 @@ export default function Timeline({
               className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-[0_1px_6px_rgba(0,0,0,0.04)]"
             >
               <div
-                className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl ${bg}`}
+                className={`w-11 h-11 rounded-xl flex items-center justify-center ${isBoth ? "text-sm" : "text-xl"} ${bg}`}
               >
                 {emoji}
               </div>

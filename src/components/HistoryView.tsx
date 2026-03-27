@@ -191,6 +191,7 @@ export default function HistoryView({ onClose }: { onClose: () => void }) {
                       );
                     } else {
                       const d = entry.data as Diaper;
+                      const isBoth = d.type === "both";
                       const emoji =
                         d.type === "wet"
                           ? "\uD83D\uDCA7"
@@ -215,7 +216,7 @@ export default function HistoryView({ onClose }: { onClose: () => void }) {
                           className="flex items-center gap-3 bg-white rounded-2xl p-3.5 shadow-[0_1px_4px_rgba(0,0,0,0.03)]"
                         >
                           <div
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center text-base ${bg}`}
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center ${isBoth ? "text-xs" : "text-base"} ${bg}`}
                           >
                             {emoji}
                           </div>
