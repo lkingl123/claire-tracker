@@ -106,7 +106,7 @@ function parseCommand(input: string): {
   return null;
 }
 
-async function handleVoice(q: string) {
+async function handleVoice(q: string, confirm: boolean = false) {
 
   if (!q) {
     return NextResponse.json({
@@ -136,6 +136,14 @@ async function handleVoice(q: string) {
   // Bottle
   if (parsed.action === "bottle") {
     const ml = parsed.value || 60;
+    if (!confirm) {
+      return NextResponse.json({
+        speech: `Log a ${ml} ml bottle feed?`,
+        action: "bottle",
+        value: ml,
+        needsConfirm: true,
+      });
+    }
     const { error } = await supabase.from("feedings").insert({
       type: "bottle",
       amount_ml: ml,
@@ -143,13 +151,21 @@ async function handleVoice(q: string) {
     });
     if (error) return NextResponse.json({ speech: "Failed to log feed." });
     return NextResponse.json({
-      speech: `Logged ${ml} ml, ${mlToOz(ml)} ounce bottle feed for Claire.`,
+      speech: `Done! Logged ${ml} ml, ${mlToOz(ml)} ounce bottle feed for Claire.`,
     });
   }
 
   // Snack
   if (parsed.action === "snack") {
     const min = parsed.value || 5;
+    if (!confirm) {
+      return NextResponse.json({
+        speech: `Log a ${min} minute breast snack?`,
+        action: "snack",
+        value: min,
+        needsConfirm: true,
+      });
+    }
     const { error } = await supabase.from("feedings").insert({
       type: "breast_snack",
       duration_minutes: min,
@@ -157,19 +173,29 @@ async function handleVoice(q: string) {
     });
     if (error) return NextResponse.json({ speech: "Failed to log snack." });
     return NextResponse.json({
-      speech: `Logged ${min} minute breast snack for Claire.`,
+      speech: `Done! Logged ${min} minute breast snack for Claire.`,
     });
   }
 
   // Diaper
   if (parsed.action === "diaper") {
     const type = parsed.type || "both";
+    if (!confirm) {
+      return NextResponse.json({
+        speech: `Log a ${type} diaper?`,
+        action: "diaper",
+        type,
+        needsConfirm: true,
+      });
+    }
     const { error } = await supabase.from("diapers").insert({
       type,
       changed_at: new Date().toISOString(),
     });
     if (error) return NextResponse.json({ speech: "Failed to log diaper." });
-    return NextResponse.json({ speech: `Logged ${type} diaper for Claire.` });
+    return NextResponse.json({
+      speech: `Done! Logged ${type} diaper for Claire.`,
+    });
   }
 
   // Last feed
@@ -243,21 +269,22 @@ async function handleVoice(q: string) {
   return NextResponse.json({ speech: "Something went wrong." });
 }
 
-// GET /api/voice?q=bottle 60
+// GET /api/voice?q=bottle 60&confirm=true
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q") || "";
-  return handleVoice(q);
+  const confirm = searchParams.get("confirm") === "true";
+  return handleVoice(q, confirm);
 }
 
-// POST /api/voice  body: { q: "bottle 60" }
+// POST /api/voice  body: { q: "bottle 60", confirm: true }
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const q = body.q || body.text || body.command || "";
-    return handleVoice(q);
+    const confirm = body.confirm === true;
+    return handleVoice(q, confirm);
   } catch {
-    // Handle form-encoded or plain text
     const text = await request.text();
     return handleVoice(text);
   }
