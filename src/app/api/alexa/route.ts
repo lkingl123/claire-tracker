@@ -75,7 +75,7 @@ async function handleLastFeed() {
     );
   } else {
     return buildResponse(
-      `Claire had a breast snack for ${last.duration_minutes} minutes, about ${timeStr} ago.${
+      `Claire had a breast snack of ${last.amount_ml} ml, about ${timeStr} ago.${
         minAgo >= 150
           ? " It's been over 2 and a half hours. She probably needs a full feed soon!"
           : ""
@@ -127,7 +127,7 @@ async function handleLogBottle(ml: number) {
 async function handleLogSnack(minutes: number) {
   const { error } = await supabase.from("feedings").insert({
     type: "breast_snack",
-    duration_minutes: minutes,
+    amount_ml: minutes,
     fed_at: new Date().toISOString(),
   });
 

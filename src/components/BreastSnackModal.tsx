@@ -3,14 +3,18 @@
 import { useState } from "react";
 
 interface Props {
-  onSubmit: (minutes: number) => void;
+  onSubmit: (ml: number) => void;
   onClose: () => void;
 }
 
-const QUICK_MINS = [2, 5, 10, 15, 20, 30];
+const QUICK_ML = [15, 30, 45, 60, 75, 90];
+
+function mlToOz(ml: number): string {
+  return (ml / 29.5735).toFixed(1);
+}
 
 export default function BreastSnackModal({ onSubmit, onClose }: Props) {
-  const [minutes, setMinutes] = useState<number>(5);
+  const [ml, setMl] = useState<number>(30);
 
   return (
     <div
@@ -32,17 +36,18 @@ export default function BreastSnackModal({ onSubmit, onClose }: Props) {
 
         {/* Quick select */}
         <div className="grid grid-cols-3 gap-2.5 mb-6">
-          {QUICK_MINS.map((v) => (
+          {QUICK_ML.map((v) => (
             <button
               key={v}
-              onClick={() => setMinutes(v)}
-              className={`py-3.5 rounded-2xl text-base font-bold transition-all ${
-                minutes === v
+              onClick={() => setMl(v)}
+              className={`py-3 rounded-2xl text-base font-bold transition-all flex flex-col items-center gap-0.5 ${
+                ml === v
                   ? "bg-blush text-brown shadow-[0_2px_8px_rgba(240,157,170,0.4)] scale-[1.02]"
                   : "bg-white text-brown-light shadow-[0_1px_4px_rgba(0,0,0,0.04)]"
               }`}
             >
-              {v} min
+              <span>{v} ml</span>
+              <span className="text-[10px] opacity-60">{mlToOz(v)} oz</span>
             </button>
           ))}
         </div>
@@ -50,21 +55,24 @@ export default function BreastSnackModal({ onSubmit, onClose }: Props) {
         {/* Adjuster */}
         <div className="flex items-center gap-4 mb-6">
           <button
-            onClick={() => setMinutes(Math.max(1, minutes - 1))}
+            onClick={() => setMl(Math.max(5, ml - 5))}
             className="w-14 h-14 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] text-2xl font-bold text-brown-light active:scale-95 transition-transform"
           >
             -
           </button>
           <div className="flex-1 text-center">
-            <span className="text-5xl font-extrabold text-brown">
-              {minutes}
-            </span>
-            <span className="text-lg font-semibold text-brown-lighter ml-1">
-              min
-            </span>
+            <div>
+              <span className="text-5xl font-extrabold text-brown">{ml}</span>
+              <span className="text-lg font-semibold text-brown-lighter ml-1">
+                ml
+              </span>
+            </div>
+            <div className="text-sm font-semibold text-brown-lighter/60 mt-0.5">
+              {mlToOz(ml)} oz
+            </div>
           </div>
           <button
-            onClick={() => setMinutes(minutes + 1)}
+            onClick={() => setMl(ml + 5)}
             className="w-14 h-14 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] text-2xl font-bold text-brown-light active:scale-95 transition-transform"
           >
             +
@@ -72,7 +80,7 @@ export default function BreastSnackModal({ onSubmit, onClose }: Props) {
         </div>
 
         <button
-          onClick={() => onSubmit(minutes)}
+          onClick={() => onSubmit(ml)}
           className="w-full py-4 bg-blush text-brown rounded-2xl text-lg font-extrabold active:scale-[0.98] transition-transform shadow-[0_4px_16px_rgba(240,157,170,0.3)]"
         >
           Log Snack {"\uD83E\uDD31"}

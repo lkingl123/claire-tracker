@@ -6,7 +6,7 @@ const VOICE_URL = "https://claire-tracker.vercel.app/api/voice";
 
 const EXAMPLES = [
   { category: "Bottle Feeds", emoji: "\uD83C\uDF7C", bg: "bg-peach/30", phrases: ["bottle 60", "bottle 30", "bottle 90", "fed 45"] },
-  { category: "Breast Snacks", emoji: "\uD83E\uDD31", bg: "bg-blush/25", phrases: ["snack 5", "snack 10", "breast snack"] },
+  { category: "Breast Snacks", emoji: "\uD83E\uDD31", bg: "bg-blush/25", phrases: ["snack 30", "snack 45", "snack 60"] },
   { category: "Diapers", emoji: "\uD83D\uDC76", bg: "bg-mint/30", phrases: ["wet diaper", "dirty diaper", "both diaper", "diaper"] },
   { category: "Check On Claire", emoji: "\uD83D\uDCCA", bg: "bg-lavender-light/40", phrases: ["status", "last feed"] },
 ];

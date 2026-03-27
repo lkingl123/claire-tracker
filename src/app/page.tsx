@@ -72,11 +72,11 @@ export default function Home() {
     if (!error) loadData();
   };
 
-  const handleBreastSnack = async (minutes: number) => {
+  const handleBreastSnack = async (ml: number) => {
     setModal(null);
     const { error } = await supabase.from("feedings").insert({
       type: "breast_snack",
-      duration_minutes: minutes,
+      amount_ml: ml,
       fed_at: new Date().toISOString(),
     });
     if (!error) loadData();

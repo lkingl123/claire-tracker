@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     const min = parseInt(searchParams.get("min") || "5");
     const { error } = await supabase.from("feedings").insert({
       type: "breast_snack",
-      duration_minutes: min,
+      amount_ml: min,
       fed_at: new Date().toISOString(),
     });
     if (error) return NextResponse.json({ speech: "Failed to log snack." });
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
     } else {
       const warning = minAgo >= 150 ? " She probably needs a full feed soon!" : "";
       return NextResponse.json({
-        speech: `Last was a ${last.duration_minutes} min breast snack, ${formatMinutes(minAgo)} ago.${warning}`,
+        speech: `Last was a ${last.amount_ml} ml breast snack, ${formatMinutes(minAgo)} ago.${warning}`,
       });
     }
   }

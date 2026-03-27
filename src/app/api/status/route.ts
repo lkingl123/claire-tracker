@@ -34,7 +34,7 @@ export async function GET() {
   const snacks = feedings.filter((f) => f.type === "breast_snack");
   const totalMl = bottles.reduce((sum, f) => sum + (f.amount_ml || 0), 0);
   const totalSnackMin = snacks.reduce(
-    (sum, f) => sum + (f.duration_minutes || 0),
+    (sum, f) => sum + (f.amount_ml || 0),
     0
   );
 

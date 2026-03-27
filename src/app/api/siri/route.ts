@@ -111,20 +111,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Snack
-    const snackMatch = text.match(/snack\s*(\d+)|(\d+)\s*min.*snack/);
+    const snackMatch = text.match(/snack\s*(\d+)|(\d+)\s*ml.*snack/);
     if (snackMatch) {
-      const min = parseInt(snackMatch[1] || snackMatch[2]);
+      const ml = parseInt(snackMatch[1] || snackMatch[2]);
       return NextResponse.json({
-        speech: `Log a ${min} minute breast snack? Say yes to confirm.`,
-        preview: `snack ${min}`,
+        speech: `Log a ${ml} ml breast snack? Say yes to confirm.`,
+        preview: `snack ${ml}`,
         needsConfirm: true,
       });
     }
     if (text.includes("snack") || text.includes("breast")) {
       return NextResponse.json({
-        speech: `Log a 5 minute breast snack? Say yes to confirm.`,
-        preview: `snack 5`,
-        needsConfirm: true,
+        speech: "How many ml? Say snack followed by a number, like snack 30.",
+        done: true,
       });
     }
 
@@ -179,16 +178,16 @@ async function executeCommand(cmd: string): Promise<NextResponse> {
   // Snack
   const snackMatch = text.match(/snack\s*(\d+)/);
   if (snackMatch) {
-    const min = parseInt(snackMatch[1]);
+    const ml = parseInt(snackMatch[1]);
     const { error } = await supabase.from("feedings").insert({
       type: "breast_snack",
-      duration_minutes: min,
+      amount_ml: ml,
       fed_at: new Date().toISOString(),
     });
     if (error)
       return NextResponse.json({ speech: "Failed to log snack.", done: true });
     return NextResponse.json({
-      speech: `Done! Logged ${min} minute breast snack.`,
+      speech: `Done! Logged ${ml} ml breast snack.`,
       done: true,
     });
   }
@@ -238,7 +237,7 @@ async function getLastFeed(): Promise<NextResponse> {
     });
   }
   return NextResponse.json({
-    speech: `Last was a ${last.duration_minutes} minute snack, ${formatMinutes(minAgo)} ago.${warning}`,
+    speech: `Last was a ${last.amount_ml} ml breast snack, ${formatMinutes(minAgo)} ago.${warning}`,
     done: true,
   });
 }

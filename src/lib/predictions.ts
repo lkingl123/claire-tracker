@@ -44,7 +44,7 @@ export function predictNextFeed(feedings: Feeding[]): Date | null {
 // Get feeding progress - groups snacks + bottles within 30 min windows
 export function getFeedingProgress(feedings: Feeding[]): {
   totalMl: number;
-  snackMinutes: number;
+  snackMl: number;
   lastFeedTime: Date | null;
   timeSinceLastFeed: number | null; // in minutes
 } {
@@ -71,11 +71,11 @@ export function getFeedingProgress(feedings: Feeding[]): {
     .filter((f) => f.type === "bottle")
     .reduce((sum, f) => sum + (f.amount_ml || 0), 0);
 
-  const snackMinutes = todayFeedings
+  const snackMl = todayFeedings
     .filter((f) => f.type === "breast_snack")
-    .reduce((sum, f) => sum + (f.duration_minutes || 0), 0);
+    .reduce((sum, f) => sum + (f.amount_ml || 0), 0);
 
-  return { totalMl, snackMinutes, lastFeedTime, timeSinceLastFeed };
+  return { totalMl, snackMl, lastFeedTime, timeSinceLastFeed };
 }
 
 // Format time since last feed

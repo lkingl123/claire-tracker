@@ -148,11 +148,11 @@ export default function Dashboard({ feedings, diapers }: Props) {
           </div>
         </div>
 
-        {progress.snackMinutes > 0 && (
+        {progress.snackMl > 0 && (
           <div className="mt-3 flex items-center gap-2 bg-blush/20 rounded-full px-3 py-1.5 w-fit">
             <span className="text-sm">{"\uD83E\uDD31"}</span>
             <span className="text-xs font-semibold text-brown-light">
-              {progress.snackMinutes} min snacking today
+              {progress.snackMl} ml ({mlToOz(progress.snackMl)} oz) snacking today
             </span>
           </div>
         )}

@@ -181,7 +181,7 @@ export default function HistoryView({ onClose }: { onClose: () => void }) {
                             <div className="font-bold text-xs text-brown">
                               {isBottle
                                 ? `Bottle - ${f.amount_ml} ml`
-                                : `Snack - ${f.duration_minutes} min`}
+                                : `Snack - ${f.amount_ml} ml`}
                             </div>
                           </div>
                           <div className="text-[11px] font-semibold text-brown-lighter">

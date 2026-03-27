@@ -168,7 +168,7 @@ async function handleVoice(q: string, confirm: boolean = false) {
     }
     const { error } = await supabase.from("feedings").insert({
       type: "breast_snack",
-      duration_minutes: min,
+      amount_ml: min,
       fed_at: new Date().toISOString(),
     });
     if (error) return NextResponse.json({ speech: "Failed to log snack." });
@@ -221,7 +221,7 @@ async function handleVoice(q: string, confirm: boolean = false) {
       });
     }
     return NextResponse.json({
-      speech: `Last was a ${last.duration_minutes} minute snack, ${formatMinutes(minAgo)} ago.${warning}`,
+      speech: `Last was a ${last.amount_ml} ml breast snack, ${formatMinutes(minAgo)} ago.${warning}`,
     });
   }
 

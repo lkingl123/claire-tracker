@@ -71,7 +71,7 @@ export default function Timeline({
                 <div className="font-bold text-sm text-brown">
                   {isBottle
                     ? `Bottle - ${f.amount_ml} ml (${mlToOz(f.amount_ml || 0)} oz)`
-                    : `Snack - ${f.duration_minutes} min`}
+                    : `Snack - ${f.amount_ml} ml (${mlToOz(f.amount_ml || 0)} oz)`}
                 </div>
                 <div className="text-xs font-medium text-brown-lighter">
                   {format(entry.time, "h:mm a")}
