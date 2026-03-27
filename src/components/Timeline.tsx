@@ -16,6 +16,7 @@ interface Props {
   diapers: Diaper[];
   onDeleteFeeding: (id: string) => void;
   onDeleteDiaper: (id: string) => void;
+  onEditEntry: (entry: { kind: "feeding"; data: Feeding } | { kind: "diaper"; data: Diaper }) => void;
 }
 
 export default function Timeline({
@@ -23,6 +24,7 @@ export default function Timeline({
   diapers,
   onDeleteFeeding,
   onDeleteDiaper,
+  onEditEntry,
 }: Props) {
   const entries: TimelineEntry[] = [
     ...feedings.map(
@@ -58,7 +60,8 @@ export default function Timeline({
           return (
             <div
               key={`f-${f.id}`}
-              className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-[0_1px_6px_rgba(0,0,0,0.04)]"
+              className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-[0_1px_6px_rgba(0,0,0,0.04)] cursor-pointer active:scale-[0.99] transition-transform"
+              onClick={() => onEditEntry({ kind: "feeding", data: f })}
             >
               <div
                 className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl ${
@@ -78,7 +81,10 @@ export default function Timeline({
                 </div>
               </div>
               <button
-                onClick={() => onDeleteFeeding(f.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteFeeding(f.id);
+                }}
                 className="w-8 h-8 rounded-full bg-rose/20 flex items-center justify-center text-brown-lighter text-xs active:scale-90 transition-transform"
               >
                 {"\u2715"}
@@ -95,7 +101,7 @@ export default function Timeline({
                 : "\uD83D\uDCA7\uD83D\uDCA9";
           const isBoth = d.type === "both";
           const label =
-            d.type === "wet" ? "Wet" : d.type === "dirty" ? "Dirty" : "Both";
+            d.type === "wet" ? "Pee" : d.type === "dirty" ? "Poop" : "Both";
           const bg =
             d.type === "wet"
               ? "bg-sky/30"
@@ -105,7 +111,8 @@ export default function Timeline({
           return (
             <div
               key={`d-${d.id}`}
-              className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-[0_1px_6px_rgba(0,0,0,0.04)]"
+              className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-[0_1px_6px_rgba(0,0,0,0.04)] cursor-pointer active:scale-[0.99] transition-transform"
+              onClick={() => onEditEntry({ kind: "diaper", data: d })}
             >
               <div
                 className={`w-11 h-11 rounded-xl flex items-center justify-center ${isBoth ? "text-sm" : "text-xl"} ${bg}`}
@@ -121,7 +128,10 @@ export default function Timeline({
                 </div>
               </div>
               <button
-                onClick={() => onDeleteDiaper(d.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteDiaper(d.id);
+                }}
                 className="w-8 h-8 rounded-full bg-rose/20 flex items-center justify-center text-brown-lighter text-xs active:scale-90 transition-transform"
               >
                 {"\u2715"}

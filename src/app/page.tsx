@@ -11,8 +11,10 @@ import BreastSnackModal from "@/components/BreastSnackModal";
 import DiaperModal from "@/components/DiaperModal";
 import HistoryView from "@/components/HistoryView";
 import SiriGuide from "@/components/SiriGuide";
+import EditEntryModal from "@/components/EditEntryModal";
 
 type Modal = "bottle" | "breast" | "diaper" | null;
+type EditTarget = { kind: "feeding"; data: Feeding } | { kind: "diaper"; data: Diaper } | null;
 
 export default function Home() {
   const [feedings, setFeedings] = useState<Feeding[]>([]);
@@ -22,6 +24,7 @@ export default function Home() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showSiri, setShowSiri] = useState(false);
+  const [editTarget, setEditTarget] = useState<EditTarget>(null);
 
   const loadData = useCallback(async () => {
     const todayStart = new Date();
@@ -89,6 +92,19 @@ export default function Home() {
       changed_at: new Date().toISOString(),
     });
     if (!error) loadData();
+  };
+
+  const handleEditEntry = async (
+    kind: "feeding" | "diaper",
+    id: string,
+    updates: Record<string, unknown>
+  ) => {
+    if (kind === "feeding") {
+      await supabase.from("feedings").update(updates).eq("id", id);
+    } else {
+      await supabase.from("diapers").update(updates).eq("id", id);
+    }
+    loadData();
   };
 
   const handleDeleteFeeding = async (id: string) => {
@@ -190,8 +206,18 @@ export default function Home() {
           diapers={diapers}
           onDeleteFeeding={handleDeleteFeeding}
           onDeleteDiaper={handleDeleteDiaper}
+          onEditEntry={setEditTarget}
         />
       </div>
+
+      {/* Edit Entry */}
+      {editTarget && (
+        <EditEntryModal
+          entry={editTarget}
+          onSave={handleEditEntry}
+          onClose={() => setEditTarget(null)}
+        />
+      )}
 
       {/* Siri Guide */}
       {showSiri && <SiriGuide onClose={() => setShowSiri(false)} />}
