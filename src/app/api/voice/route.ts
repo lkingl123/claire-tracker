@@ -17,12 +17,31 @@ function formatMinutes(min: number): string {
   return m > 0 ? `${h} hours and ${m} minutes` : `${h} hours`;
 }
 
+// Convert word numbers to digits
+function wordToNumber(text: string): string {
+  const words: Record<string, string> = {
+    zero: "0", one: "1", two: "2", three: "3", four: "4", five: "5",
+    six: "6", seven: "7", eight: "8", nine: "9", ten: "10",
+    fifteen: "15", twenty: "20", "twenty five": "25", thirty: "30",
+    "thirty five": "35", forty: "40", "forty five": "45", fifty: "50",
+    sixty: "60", seventy: "70", "seventy five": "75", eighty: "80",
+    ninety: "90", hundred: "100",
+  };
+  let result = text;
+  // Sort by length desc so "twenty five" matches before "twenty"
+  for (const [word, num] of Object.entries(words).sort((a, b) => b[0].length - a[0].length)) {
+    result = result.replace(new RegExp(word, "gi"), num);
+  }
+  return result;
+}
+
 function parseCommand(input: string): {
   action: string;
   value?: number;
   type?: string;
 } | null {
-  const text = input.toLowerCase().trim();
+  // Convert word numbers to digits first
+  const text = wordToNumber(input.toLowerCase().trim());
 
   // Bottle: "bottle 60", "60 ml bottle", "60ml", "bottle", "fed 60"
   const bottleMatch = text.match(
@@ -34,8 +53,9 @@ function parseCommand(input: string): {
     if (ml <= 10) ml = Math.round(ml * 29.5735);
     return { action: "bottle", value: ml };
   }
+  // Bottle without number — ask them to specify
   if (text === "bottle" || text === "fed" || text === "feed") {
-    return { action: "bottle", value: 60 };
+    return { action: "bottle_no_amount" };
   }
 
   // Snack: "snack 5", "snack", "breast snack"
@@ -104,6 +124,14 @@ export async function GET(request: NextRequest) {
   if (!parsed) {
     return NextResponse.json({
       speech: `Command not recognized. I heard "${q}". Try saying: bottle 60, snack 5, wet diaper, dirty diaper, status, or last feed.`,
+      error: true,
+    });
+  }
+
+  // Bottle without amount
+  if (parsed.action === "bottle_no_amount") {
+    return NextResponse.json({
+      speech: "How many ml? Say bottle followed by a number, like bottle 30 or bottle 60.",
       error: true,
     });
   }
