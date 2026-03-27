@@ -106,10 +106,7 @@ function parseCommand(input: string): {
   return null;
 }
 
-// GET /api/voice?q=bottle 60
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const q = searchParams.get("q") || "";
+async function handleVoice(q: string) {
 
   if (!q) {
     return NextResponse.json({
@@ -244,4 +241,24 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({ speech: "Something went wrong." });
+}
+
+// GET /api/voice?q=bottle 60
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const q = searchParams.get("q") || "";
+  return handleVoice(q);
+}
+
+// POST /api/voice  body: { q: "bottle 60" }
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const q = body.q || body.text || body.command || "";
+    return handleVoice(q);
+  } catch {
+    // Handle form-encoded or plain text
+    const text = await request.text();
+    return handleVoice(text);
+  }
 }
