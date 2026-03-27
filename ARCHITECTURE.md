@@ -100,6 +100,18 @@ Baby feeding and diaper tracker for Claire (born March 21, 2026). Web app + Alex
 - Skill ID: `amzn1.ask.skill.6b038d3f-61db-440a-bf9d-a8be62fa6285`
 - Invocation name: `baby tracker`
 - Interaction model: `alexa-skill-model.json` in project root
+- Endpoint: HTTPS -> `https://claire-tracker.vercel.app/api/alexa`
+- SSL: "My development endpoint is a sub-domain of a domain that has a wildcard certificate from a certificate authority"
+
+### Current Interaction Model (must match what's in developer console JSON Editor):
+- **LogBottleIntent**: slot `amount` (AMAZON.NUMBER) - "log a {amount} milliliter bottle"
+- **LogSnackIntent**: slot `amount` (AMAZON.NUMBER) - "snack {amount} milliliters" (ml not minutes!)
+- **LogDiaperIntent**: slot `diaperType` (custom DiaperType) - values: pee (synonym: wet), poop (synonym: dirty), both
+- **LastFeedIntent**: "when was the last feed"
+- **DailyStatusIntent**: "how is claire doing"
+- **DiaperCountIntent**: "how many diapers"
+- **UndoIntent**: "undo", "undo last", "delete last"
+- **IMPORTANT**: If you update `alexa-skill-model.json` in code, you MUST also paste the updated JSON into the developer console JSON Editor, Save, and Build Skill
 
 ---
 
