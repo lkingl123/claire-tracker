@@ -2,93 +2,24 @@
 
 import { useState } from "react";
 
-const BASE = "https://claire-tracker.vercel.app/api/quick";
+const VOICE_URL = "https://claire-tracker.vercel.app/api/voice";
 
-const SHORTCUTS = [
-  {
-    category: "Bottle Feeds",
-    emoji: "\uD83C\uDF7C",
-    bg: "bg-peach/30",
-    items: [
-      { say: "Log Bottle 30", url: `${BASE}?action=bottle&ml=30` },
-      { say: "Log Bottle 45", url: `${BASE}?action=bottle&ml=45` },
-      { say: "Log Bottle 60", url: `${BASE}?action=bottle&ml=60` },
-      { say: "Log Bottle 75", url: `${BASE}?action=bottle&ml=75` },
-      { say: "Log Bottle 90", url: `${BASE}?action=bottle&ml=90` },
-    ],
-  },
-  {
-    category: "Breast Snacks",
-    emoji: "\uD83E\uDD31",
-    bg: "bg-blush/25",
-    items: [
-      { say: "Log Snack 5", url: `${BASE}?action=snack&min=5` },
-      { say: "Log Snack 10", url: `${BASE}?action=snack&min=10` },
-      { say: "Log Snack 15", url: `${BASE}?action=snack&min=15` },
-    ],
-  },
-  {
-    category: "Diapers",
-    emoji: "\uD83D\uDC76",
-    bg: "bg-mint/30",
-    items: [
-      { say: "Log Wet Diaper", url: `${BASE}?action=diaper&type=wet` },
-      { say: "Log Dirty Diaper", url: `${BASE}?action=diaper&type=dirty` },
-      { say: "Log Both Diaper", url: `${BASE}?action=diaper&type=both` },
-    ],
-  },
-  {
-    category: "Check Status",
-    emoji: "\uD83D\uDCCA",
-    bg: "bg-lavender-light/40",
-    items: [
-      { say: "Claire Status", url: `${BASE}?action=status` },
-      { say: "Last Feed", url: `${BASE}?action=last` },
-    ],
-  },
+const EXAMPLES = [
+  { category: "Bottle Feeds", emoji: "\uD83C\uDF7C", bg: "bg-peach/30", phrases: ["bottle 60", "bottle 30", "bottle 90", "fed 45"] },
+  { category: "Breast Snacks", emoji: "\uD83E\uDD31", bg: "bg-blush/25", phrases: ["snack 5", "snack 10", "breast snack"] },
+  { category: "Diapers", emoji: "\uD83D\uDC76", bg: "bg-mint/30", phrases: ["wet diaper", "dirty diaper", "both diaper", "diaper"] },
+  { category: "Check On Claire", emoji: "\uD83D\uDCCA", bg: "bg-lavender-light/40", phrases: ["status", "last feed"] },
 ];
 
-function ShortcutSetup({ name, url }: { name: string; url: string }) {
+export default function SiriGuide({ onClose }: { onClose: () => void }) {
   const [copied, setCopied] = useState(false);
 
-  return (
-    <div className="py-3">
-      <div className="flex items-center justify-between gap-2 mb-1.5">
-        <div className="text-sm font-bold text-brown">
-          &ldquo;Hey Siri, {name}&rdquo;
-        </div>
-        <button
-          onClick={() => {
-            navigator.clipboard.writeText(url);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          }}
-          className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white text-brown-light shadow-[0_1px_4px_rgba(0,0,0,0.06)] whitespace-nowrap active:scale-95 transition-transform"
-        >
-          {copied ? "\u2713 Copied!" : "Copy URL"}
-        </button>
-      </div>
-      <div
-        onClick={() => {
-          navigator.clipboard.writeText(url);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        }}
-        className="text-[10px] font-medium text-brown-lighter bg-white/60 rounded-lg px-2.5 py-1.5 break-all cursor-pointer active:bg-white/80 transition-colors"
-      >
-        {url}
-      </div>
-    </div>
-  );
-}
-
-export default function SiriGuide({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-cream z-50 flex flex-col">
       {/* Header */}
       <div className="px-5 pt-8 pb-2 flex items-center justify-between">
         <h1 className="text-xl font-extrabold text-brown">
-          {"\uD83C\uDF99\uFE0F"} Siri Shortcuts
+          {"\uD83C\uDF99\uFE0F"} Siri Setup
         </h1>
         <button
           onClick={onClose}
@@ -98,56 +29,75 @@ export default function SiriGuide({ onClose }: { onClose: () => void }) {
         </button>
       </div>
 
-      {/* Setup instructions */}
-      <div className="px-5 py-3">
-        <div className="bg-white rounded-2xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-          <div className="text-xs font-extrabold text-brown-lighter uppercase tracking-wider mb-2">
-            How to set up
+      <div className="flex-1 overflow-y-auto hide-scrollbar px-5 pb-8">
+        {/* One shortcut setup */}
+        <div className="bg-white rounded-2xl p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] mb-4">
+          <div className="text-sm font-extrabold text-brown mb-3">
+            One shortcut for everything
           </div>
-          <ol className="text-xs text-brown-light space-y-1.5 list-decimal list-inside">
-            <li>
-              Open <span className="font-bold">Shortcuts</span> app on iPhone
-            </li>
-            <li>
-              Tap <span className="font-bold">+</span> &rarr; Add Action &rarr;
-              search <span className="font-bold">&ldquo;Get Contents of URL&rdquo;</span>
-            </li>
-            <li>
-              Tap <span className="font-bold">Copy URL</span> below and paste it
-            </li>
-            <li>
-              Add action: <span className="font-bold">&ldquo;Get Dictionary Value&rdquo;</span> &rarr;
-              key: <span className="font-bold">speech</span>
-            </li>
-            <li>
-              Add action: <span className="font-bold">&ldquo;Speak Text&rdquo;</span> &rarr;
-              select the value
-            </li>
-            <li>Rename the shortcut to the name shown below</li>
+          <ol className="text-xs text-brown-light space-y-2 list-decimal list-inside mb-4">
+            <li>Open <span className="font-bold">Shortcuts</span> app</li>
+            <li>Tap <span className="font-bold">+</span> &rarr; <span className="font-bold">Add Action</span></li>
+            <li>Search <span className="font-bold">&ldquo;Ask for Input&rdquo;</span> &rarr; add it. Set prompt to: <span className="font-bold">&ldquo;What do you want to log?&rdquo;</span></li>
+            <li>Add action: <span className="font-bold">&ldquo;Get Contents of URL&rdquo;</span></li>
+            <li>Tap the URL and paste this (tap to copy):</li>
+          </ol>
+
+          <div
+            onClick={() => {
+              navigator.clipboard.writeText(`${VOICE_URL}?q=`);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+            className="bg-cream rounded-xl p-3 mb-3 active:bg-cream-dark transition-colors cursor-pointer"
+          >
+            <div className="text-[11px] font-mono text-brown break-all">
+              {VOICE_URL}?q=
+            </div>
+            <div className="text-[10px] font-bold text-peach-dark mt-1">
+              {copied ? "\u2713 Copied!" : "Tap to copy"}
+            </div>
+          </div>
+
+          <ol start={6} className="text-xs text-brown-light space-y-2 list-decimal list-inside">
+            <li>After the <span className="font-bold">=</span> in the URL, tap and insert the <span className="font-bold">&ldquo;Provided Input&rdquo;</span> variable from step 3</li>
+            <li>Add action: <span className="font-bold">&ldquo;Get Dictionary Value&rdquo;</span> &rarr; key: <span className="font-bold">speech</span></li>
+            <li>Add action: <span className="font-bold">&ldquo;Speak Text&rdquo;</span> &rarr; select the dictionary value</li>
+            <li>Rename shortcut to <span className="font-bold">&ldquo;Claire&rdquo;</span></li>
           </ol>
         </div>
-      </div>
 
-      {/* Shortcuts list */}
-      <div className="flex-1 overflow-y-auto hide-scrollbar px-5 pb-8">
-        <div className="space-y-4">
-          {SHORTCUTS.map((group) => (
-            <div key={group.category}>
+        {/* How to use */}
+        <div className="bg-white rounded-2xl p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] mb-4">
+          <div className="text-sm font-extrabold text-brown mb-1">
+            Then just say:
+          </div>
+          <div className="text-lg font-extrabold text-peach-dark mb-2">
+            &ldquo;Hey Siri, Claire&rdquo;
+          </div>
+          <div className="text-xs text-brown-lighter">
+            Siri will ask &ldquo;What do you want to log?&rdquo; and you respond with any of the phrases below.
+          </div>
+        </div>
+
+        {/* Example phrases */}
+        <div className="space-y-3">
+          {EXAMPLES.map((group) => (
+            <div key={group.category} className={`${group.bg} rounded-2xl p-4`}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-base">{group.emoji}</span>
                 <span className="text-xs font-extrabold text-brown-lighter uppercase tracking-wider">
                   {group.category}
                 </span>
               </div>
-              <div
-                className={`${group.bg} rounded-2xl px-4 py-1 divide-y divide-brown-lighter/10`}
-              >
-                {group.items.map((item) => (
-                  <ShortcutSetup
-                    key={item.say}
-                    name={item.say}
-                    url={item.url}
-                  />
+              <div className="flex flex-wrap gap-1.5">
+                {group.phrases.map((phrase) => (
+                  <span
+                    key={phrase}
+                    className="text-xs font-semibold text-brown bg-white/60 px-2.5 py-1 rounded-full"
+                  >
+                    &ldquo;{phrase}&rdquo;
+                  </span>
                 ))}
               </div>
             </div>
