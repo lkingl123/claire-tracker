@@ -94,7 +94,8 @@ export async function GET(request: NextRequest) {
   if (!q) {
     return NextResponse.json({
       speech:
-        "Say something like: bottle 60, snack 5, wet diaper, status, or last feed.",
+        "Command not recognized. Say something like: bottle 60, snack 5, wet diaper, status, or last feed.",
+      error: true,
     });
   }
 
@@ -102,7 +103,8 @@ export async function GET(request: NextRequest) {
 
   if (!parsed) {
     return NextResponse.json({
-      speech: `I didn't understand "${q}". Try: bottle 60, snack 5, wet diaper, dirty diaper, status, or last feed.`,
+      speech: `Command not recognized. I heard "${q}". Try saying: bottle 60, snack 5, wet diaper, dirty diaper, status, or last feed.`,
+      error: true,
     });
   }
 
