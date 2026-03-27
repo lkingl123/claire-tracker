@@ -20,16 +20,25 @@ function formatMinutes(min: number): string {
 }
 
 function buildResponse(speech: string, shouldEnd: boolean = true) {
-  return NextResponse.json({
-    version: "1.0",
-    response: {
-      outputSpeech: {
-        type: "PlainText",
-        text: speech,
+  return new NextResponse(
+    JSON.stringify({
+      version: "1.0",
+      sessionAttributes: {},
+      response: {
+        outputSpeech: {
+          type: "PlainText",
+          text: speech,
+        },
+        shouldEndSession: shouldEnd,
       },
-      shouldEndSession: shouldEnd,
-    },
-  });
+    }),
+    {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json;charset=UTF-8",
+      },
+    }
+  );
 }
 
 async function getStatus() {
