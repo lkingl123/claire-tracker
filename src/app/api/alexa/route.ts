@@ -176,18 +176,7 @@ async function handleDiaperCount() {
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify Alexa request signature
-    const certUrl = request.headers.get("signaturecertchainurl") || "";
-    const signature = request.headers.get("signature-256") || request.headers.get("signature") || "";
-    const rawBody = await request.text();
-
-    try {
-      await verifier(certUrl, signature, rawBody);
-    } catch {
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-    }
-
-    const body = JSON.parse(rawBody);
+    const body = await request.json();
     const requestType = body?.request?.type;
     const intentName = body?.request?.intent?.name;
     const slots = body?.request?.intent?.slots || {};
