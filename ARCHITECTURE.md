@@ -112,6 +112,7 @@ Baby feeding and diaper tracker for Claire (born March 21, 2026). Web app + Alex
 - **DiaperCountIntent**: "how many diapers"
 - **UndoIntent**: "undo", "undo last", "delete last"
 - **IMPORTANT**: If you update `alexa-skill-model.json` in code, you MUST also paste the updated JSON into the developer console JSON Editor, Save, and Build Skill
+- **ASK CLI** is installed (`ask --version` = 2.30.7) and project structure exists in `skill-package/` but auth was not configured. To set up: `ask configure --no-browser` and sign in with wife's Amazon account. Then `ask deploy` syncs everything automatically. For now, manual copy-paste approach is used.
 
 ---
 
