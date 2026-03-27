@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "claire tracker",
+      "invocationName": "baby tracker",
       "intents": [
         {
           "name": "LastFeedIntent",
@@ -56,18 +56,18 @@
           "name": "LogSnackIntent",
           "slots": [
             {
-              "name": "duration",
+              "name": "amount",
               "type": "AMAZON.NUMBER"
             }
           ],
           "samples": [
             "log a snack",
             "log a breast snack",
-            "log a {duration} minute snack",
-            "breast snack {duration} minutes",
-            "she snacked for {duration} minutes",
-            "snack for {duration} minutes",
-            "log snack {duration}"
+            "log a {amount} milliliter snack",
+            "breast snack {amount} milliliters",
+            "snack {amount} milliliters",
+            "snack {amount} ml",
+            "log snack {amount}"
           ]
         },
         {
@@ -83,6 +83,7 @@
             "log a {diaperType} diaper",
             "diaper change",
             "{diaperType} diaper",
+            "diaper {diaperType}",
             "changed her diaper it was {diaperType}",
             "she had a {diaperType} diaper",
             "log diaper {diaperType}"
@@ -96,6 +97,16 @@
             "diaper count",
             "how many diaper changes",
             "diaper status"
+          ]
+        },
+        {
+          "name": "UndoIntent",
+          "samples": [
+            "undo",
+            "undo last",
+            "delete last",
+            "cancel last",
+            "remove last entry"
           ]
         },
         {
@@ -119,8 +130,8 @@
         {
           "name": "DiaperType",
           "values": [
-            { "name": { "value": "wet" } },
-            { "name": { "value": "dirty" } },
+            { "name": { "value": "pee", "synonyms": ["wet"] } },
+            { "name": { "value": "poop", "synonyms": ["dirty", "poopy"] } },
             { "name": { "value": "both" } }
           ]
         }

@@ -133,10 +133,10 @@ async function handleLogBottle(ml: number) {
   );
 }
 
-async function handleLogSnack(minutes: number) {
+async function handleLogSnack(ml: number) {
   const { error } = await supabase.from("feedings").insert({
     type: "breast_snack",
-    amount_ml: minutes,
+    amount_ml: ml,
     fed_at: new Date().toISOString(),
   });
 
@@ -147,13 +147,13 @@ async function handleLogSnack(minutes: number) {
   }
 
   return buildResponse(
-    `Got it! Logged a ${minutes} minute breast snack for Claire.`
+    `Got it! Logged a ${ml} milliliter breast snack for Claire. That's ${mlToOz(ml)} ounces.`
   );
 }
 
 async function handleLogDiaper(type: string) {
   const diaperType =
-    type === "wet" ? "wet" : type === "dirty" ? "dirty" : "both";
+    type === "pee" || type === "wet" ? "wet" : type === "poop" || type === "dirty" ? "dirty" : "both";
 
   const { error } = await supabase.from("diapers").insert({
     type: diaperType,
@@ -181,6 +181,33 @@ async function handleDiaperCount() {
   return buildResponse(
     `Claire has had ${diapers.length} diaper changes today. ${wet} wet and ${dirty} dirty.`
   );
+}
+
+async function handleUndo() {
+  const [lastFeed, lastDiaper] = await Promise.all([
+    supabase.from("feedings").select("*").order("fed_at", { ascending: false }).limit(1),
+    supabase.from("diapers").select("*").order("changed_at", { ascending: false }).limit(1),
+  ]);
+
+  const feed = lastFeed.data?.[0];
+  const diaper = lastDiaper.data?.[0];
+  const feedTime = feed ? new Date(feed.fed_at).getTime() : 0;
+  const diaperTime = diaper ? new Date(diaper.changed_at).getTime() : 0;
+
+  if (feedTime === 0 && diaperTime === 0) {
+    return buildResponse("Nothing to undo.");
+  }
+
+  if (feedTime > diaperTime && feed) {
+    await supabase.from("feedings").delete().eq("id", feed.id);
+    const label = feed.type === "bottle" ? `${feed.amount_ml} ml bottle` : `${feed.amount_ml} ml snack`;
+    return buildResponse(`Undone! Removed last entry: ${label}.`);
+  } else if (diaper) {
+    await supabase.from("diapers").delete().eq("id", diaper.id);
+    return buildResponse(`Undone! Removed last entry: ${diaper.type} diaper.`);
+  }
+
+  return buildResponse("Nothing to undo.");
 }
 
 export async function POST(request: NextRequest) {
@@ -243,8 +270,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (intentName === "LogSnackIntent") {
-      const minutes = parseInt(slots.duration?.value) || 5;
-      return handleLogSnack(minutes);
+      const ml = parseInt(slots.amount?.value) || 30;
+      return handleLogSnack(ml);
     }
 
     if (intentName === "LogDiaperIntent") {
@@ -254,6 +281,10 @@ export async function POST(request: NextRequest) {
 
     if (intentName === "DiaperCountIntent") {
       return handleDiaperCount();
+    }
+
+    if (intentName === "UndoIntent") {
+      return handleUndo();
     }
 
     return buildResponse(
