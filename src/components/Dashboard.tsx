@@ -152,10 +152,47 @@ export default function Dashboard({ feedings, diapers }: Props) {
           <div className="mt-3 flex items-center gap-2 bg-blush/20 rounded-full px-3 py-1.5 w-fit">
             <span className="text-sm">{"\uD83E\uDD31"}</span>
             <span className="text-xs font-semibold text-brown-light">
-              {progress.snackMl} ml ({mlToOz(progress.snackMl)} oz) snacking today
+              + {progress.snackMl} ml ({mlToOz(progress.snackMl)} oz) snacking
             </span>
           </div>
         )}
+
+        {/* Daily progress bar */}
+        {(() => {
+          const dailyGoal = 500;
+          const totalIntake = progress.totalMl + progress.snackMl;
+          const pct = Math.min((totalIntake / dailyGoal) * 100, 100);
+          const barColor =
+            pct >= 80
+              ? "bg-green-400"
+              : pct >= 50
+                ? "bg-amber-300"
+                : "bg-peach";
+          return (
+            <div className="mt-4">
+              <div className="flex justify-between items-baseline mb-1.5">
+                <span className="text-xs font-bold text-brown-lighter">
+                  Daily Goal
+                </span>
+                <span className="text-xs font-bold text-brown">
+                  {totalIntake} / {dailyGoal} ml
+                  <span className="text-brown-lighter/50 ml-1">
+                    ({mlToOz(totalIntake)} / {mlToOz(dailyGoal)} oz)
+                  </span>
+                </span>
+              </div>
+              <div className="w-full h-3 bg-cream-dark rounded-full overflow-hidden">
+                <div
+                  className={`h-full ${barColor} rounded-full transition-all duration-500`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <div className="text-[10px] font-semibold text-brown-lighter/50 mt-1 text-right">
+                {Math.round(pct)}% of recommended
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Diapers */}
