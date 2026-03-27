@@ -35,11 +35,7 @@ function wordToNumber(text: string): string {
   return result;
 }
 
-// Ultra simple: GET /api/speak?q=bottle+30
-// Returns plain text response (not JSON) - Siri can speak it directly
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const raw = searchParams.get("q") || "";
+async function handleSpeak(raw: string) {
   const text = wordToNumber(raw.toLowerCase().trim());
 
   // Status
@@ -191,4 +187,22 @@ export async function GET(request: NextRequest) {
     `I heard ${raw}. Try: bottle 30, snack 30, wet diaper, status, or last feed.`,
     { headers: { "Content-Type": "text/plain" } }
   );
+}
+
+// GET /api/speak?q=bottle+30
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const raw = searchParams.get("q") || "";
+  return handleSpeak(raw);
+}
+
+// POST /api/speak  body: { q: "bottle 30" }
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    return handleSpeak(body.q || "");
+  } catch {
+    const text = await request.text();
+    return handleSpeak(text);
+  }
 }
