@@ -2,12 +2,10 @@
 
 import { useState } from "react";
 
-const VOICE_URL = "https://claire-tracker.vercel.app/api/voice";
-
 const EXAMPLES = [
-  { category: "Bottle Feeds", emoji: "\uD83C\uDF7C", bg: "bg-peach/30", phrases: ["bottle 60", "bottle 30", "bottle 90", "fed 45"] },
+  { category: "Bottle Feeds", emoji: "\uD83C\uDF7C", bg: "bg-peach/30", phrases: ["bottle 60", "bottle 30", "bottle 90"] },
   { category: "Breast Snacks", emoji: "\uD83E\uDD31", bg: "bg-blush/25", phrases: ["snack 30", "snack 45", "snack 60"] },
-  { category: "Diapers", emoji: "\uD83D\uDC76", bg: "bg-mint/30", phrases: ["wet diaper", "dirty diaper", "both diaper", "diaper"] },
+  { category: "Diapers", emoji: "\uD83D\uDC76", bg: "bg-mint/30", phrases: ["wet diaper", "dirty diaper", "both diaper"] },
   { category: "Check On Claire", emoji: "\uD83D\uDCCA", bg: "bg-lavender-light/40", phrases: ["status", "last feed"] },
 ];
 
@@ -30,41 +28,51 @@ export default function SiriGuide({ onClose }: { onClose: () => void }) {
       </div>
 
       <div className="flex-1 overflow-y-auto hide-scrollbar px-5 pb-8">
-        {/* One shortcut setup */}
+        {/* Setup - only 4 steps */}
         <div className="bg-white rounded-2xl p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] mb-4">
           <div className="text-sm font-extrabold text-brown mb-3">
-            One shortcut for everything
+            Setup (only 4 steps!)
           </div>
-          <ol className="text-xs text-brown-light space-y-2 list-decimal list-inside mb-4">
-            <li>Open <span className="font-bold">Shortcuts</span> app</li>
-            <li>Tap <span className="font-bold">+</span> &rarr; <span className="font-bold">Add Action</span></li>
-            <li>Search <span className="font-bold">&ldquo;Ask for Input&rdquo;</span> &rarr; add it. Set prompt to: <span className="font-bold">&ldquo;What do you want to log?&rdquo;</span></li>
-            <li>Add action: <span className="font-bold">&ldquo;Get Contents of URL&rdquo;</span></li>
-            <li>Tap the URL and paste this (tap to copy):</li>
+          <ol className="text-xs text-brown-light space-y-2.5 list-decimal list-inside">
+            <li>Open <span className="font-bold">Shortcuts</span> app &rarr; tap <span className="font-bold">+</span></li>
+            <li>Add action: <span className="font-bold">Dictate Text</span></li>
+            <li>
+              Add action: <span className="font-bold">Get Contents of URL</span>
+              <div className="ml-4 mt-1.5 space-y-1">
+                <div>URL (tap to copy):</div>
+              </div>
+            </li>
           </ol>
 
           <div
             onClick={() => {
-              navigator.clipboard.writeText(`${VOICE_URL}?q=`);
+              navigator.clipboard.writeText("https://claire-tracker.vercel.app/api/speak");
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
             }}
-            className="bg-cream rounded-xl p-3 mb-3 active:bg-cream-dark transition-colors cursor-pointer"
+            className="bg-cream rounded-xl p-3 my-2 ml-4 active:bg-cream-dark transition-colors cursor-pointer"
           >
             <div className="text-[11px] font-mono text-brown break-all">
-              {VOICE_URL}?q=
+              https://claire-tracker.vercel.app/api/speak
             </div>
             <div className="text-[10px] font-bold text-peach-dark mt-1">
               {copied ? "\u2713 Copied!" : "Tap to copy"}
             </div>
           </div>
 
-          <ol start={6} className="text-xs text-brown-light space-y-2 list-decimal list-inside">
-            <li>After the <span className="font-bold">=</span> in the URL, tap and insert the <span className="font-bold">&ldquo;Provided Input&rdquo;</span> variable from step 3</li>
-            <li>Add action: <span className="font-bold">&ldquo;Get Dictionary Value&rdquo;</span> &rarr; key: <span className="font-bold">speech</span></li>
-            <li>Add action: <span className="font-bold">&ldquo;Speak Text&rdquo;</span> &rarr; select the dictionary value</li>
-            <li>Rename shortcut to <span className="font-bold">&ldquo;Claire&rdquo;</span></li>
+          <div className="text-xs text-brown-light space-y-1.5 ml-8">
+            <div>&bull; Method: <span className="font-bold">POST</span></div>
+            <div>&bull; Request Body: <span className="font-bold">JSON</span></div>
+            <div>&bull; Add field &rarr; Text &rarr; Key: <span className="font-bold">q</span> &rarr; Value: <span className="font-bold">Dictated Text</span></div>
+          </div>
+
+          <ol start={4} className="text-xs text-brown-light space-y-2 list-decimal list-inside mt-2.5">
+            <li>Add action: <span className="font-bold">Speak Text</span> &rarr; select <span className="font-bold">Contents of URL</span></li>
           </ol>
+
+          <div className="mt-3 text-xs text-brown-lighter">
+            Rename the shortcut to <span className="font-bold">&ldquo;Claire&rdquo;</span> and you&apos;re done!
+          </div>
         </div>
 
         {/* How to use */}
@@ -76,7 +84,7 @@ export default function SiriGuide({ onClose }: { onClose: () => void }) {
             &ldquo;Hey Siri, Claire&rdquo;
           </div>
           <div className="text-xs text-brown-lighter">
-            Siri will ask &ldquo;What do you want to log?&rdquo; and you respond with any of the phrases below.
+            Siri will listen, then speak the result back to you.
           </div>
         </div>
 
