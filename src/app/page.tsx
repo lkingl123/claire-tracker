@@ -10,6 +10,7 @@ import BottleFeedModal from "@/components/BottleFeedModal";
 import BreastSnackModal from "@/components/BreastSnackModal";
 import DiaperModal from "@/components/DiaperModal";
 import HistoryView from "@/components/HistoryView";
+import SiriGuide from "@/components/SiriGuide";
 
 type Modal = "bottle" | "breast" | "diaper" | null;
 
@@ -20,6 +21,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showSiri, setShowSiri] = useState(false);
 
   const loadData = useCallback(async () => {
     const todayStart = new Date();
@@ -116,17 +118,25 @@ export default function Home() {
           <h1 className="text-2xl font-extrabold text-brown">
             Hi, Claire {"\uD83C\uDF38"}
           </h1>
-          {!notificationsEnabled && (
+          <div className="flex gap-2">
             <button
-              onClick={async () => {
-                const enabled = await setupNotifications();
-                setNotificationsEnabled(enabled);
-              }}
-              className="text-xs font-bold text-peach-dark bg-peach/30 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+              onClick={() => setShowSiri(true)}
+              className="text-xs font-bold text-brown-light bg-lavender-light/50 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
             >
-              {"\uD83D\uDD14"} Notify
+              {"\uD83C\uDF99\uFE0F"} Siri
             </button>
-          )}
+            {!notificationsEnabled && (
+              <button
+                onClick={async () => {
+                  const enabled = await setupNotifications();
+                  setNotificationsEnabled(enabled);
+                }}
+                className="text-xs font-bold text-peach-dark bg-peach/30 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+              >
+                {"\uD83D\uDD14"} Notify
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -182,6 +192,9 @@ export default function Home() {
           onDeleteDiaper={handleDeleteDiaper}
         />
       </div>
+
+      {/* Siri Guide */}
+      {showSiri && <SiriGuide onClose={() => setShowSiri(false)} />}
 
       {/* History */}
       {showHistory && (
