@@ -52,22 +52,32 @@ function ShortcutSetup({ name, url }: { name: string; url: string }) {
   const [copied, setCopied] = useState(false);
 
   return (
-    <div className="flex items-center justify-between gap-2 py-2">
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-bold text-brown truncate">
+    <div className="py-3">
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <div className="text-sm font-bold text-brown">
           &ldquo;Hey Siri, {name}&rdquo;
         </div>
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(url);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          }}
+          className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white text-brown-light shadow-[0_1px_4px_rgba(0,0,0,0.06)] whitespace-nowrap active:scale-95 transition-transform"
+        >
+          {copied ? "\u2713 Copied!" : "Copy URL"}
+        </button>
       </div>
-      <button
+      <div
         onClick={() => {
           navigator.clipboard.writeText(url);
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
         }}
-        className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white text-brown-light shadow-[0_1px_4px_rgba(0,0,0,0.06)] whitespace-nowrap active:scale-95 transition-transform"
+        className="text-[10px] font-medium text-brown-lighter bg-white/60 rounded-lg px-2.5 py-1.5 break-all cursor-pointer active:bg-white/80 transition-colors"
       >
-        {copied ? "\u2713 Copied" : "Copy URL"}
-      </button>
+        {url}
+      </div>
     </div>
   );
 }
