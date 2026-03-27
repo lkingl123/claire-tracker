@@ -111,7 +111,7 @@ export default function Dashboard({ feedings, diapers }: Props) {
           </span>
         </div>
 
-        <div className="flex justify-between items-end">
+        <div className="flex justify-between items-center">
           <div>
             <div className="text-4xl font-extrabold text-brown">
               {progress.totalMl + progress.snackMl}
@@ -122,28 +122,26 @@ export default function Dashboard({ feedings, diapers }: Props) {
                 ({mlToOz(progress.totalMl + progress.snackMl)} oz)
               </span>
             </div>
-            <div className="text-sm text-brown-lighter mt-1">
+            <div className="text-xs text-brown-lighter mt-1">
               {todayBottleFeeds} bottle{todayBottleFeeds !== 1 ? "s" : ""}
               {todaySnacks > 0 &&
                 ` + ${todaySnacks} snack${todaySnacks !== 1 ? "s" : ""}`}
-              {" "}&middot; {progress.totalMl}ml bottles
-              {progress.snackMl > 0 && ` + ${progress.snackMl}ml snacks`}
             </div>
           </div>
-          <div className="text-right">
+          <div className="flex flex-col items-center gap-1">
             {progress.lastFeedTime ? (
-              <div className="space-y-1">
+              <>
                 <div
-                  className={`inline-block ${urgency.bg} ${urgency.color} text-sm font-semibold px-3 py-1 rounded-full`}
+                  className={`${urgency.bg} ${urgency.color} text-sm font-semibold px-3 py-1.5 rounded-full text-center`}
                 >
                   {formatTimeSince(progress.timeSinceLastFeed!)}
                 </div>
                 {nextFeed && (
-                  <div className="text-xs text-brown-lighter">
+                  <div className="text-xs text-brown-lighter text-center">
                     Next ~{format(nextFeed, "h:mm a")}
                   </div>
                 )}
-              </div>
+              </>
             ) : (
               <div className="text-sm text-brown-lighter">No feeds yet</div>
             )}
@@ -233,7 +231,7 @@ export default function Dashboard({ feedings, diapers }: Props) {
             Diapers
           </span>
         </div>
-        <div className="flex gap-4">
+        <div className="flex items-center gap-6">
           <div className="flex items-baseline gap-1.5">
             <span className="text-3xl font-extrabold text-sky-dark">
               {wetCount}
@@ -248,7 +246,7 @@ export default function Dashboard({ feedings, diapers }: Props) {
               dirty
             </span>
           </div>
-          <div className="flex items-baseline gap-1.5 ml-auto">
+          <div className="flex items-baseline gap-1.5">
             <span className="text-3xl font-extrabold text-brown-lighter">
               {todayDiapers.length}
             </span>
