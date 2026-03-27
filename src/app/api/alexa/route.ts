@@ -228,12 +228,12 @@ export async function POST(request: NextRequest) {
         const urgency =
           minAgo >= 150 ? " She might need to eat soon!" : "";
         return buildResponse(
-          `Claire Tracker here! Last feed was ${timeStr} ago.${urgency} What would you like to do?`,
+          `Last feed was ${timeStr} ago.${urgency} What would you like to log?`,
           false
         );
       }
       return buildResponse(
-        "Claire Tracker here! No feeds logged yet today. What would you like to do?",
+        "No feeds logged yet today. What would you like to log?",
         false
       );
     }
