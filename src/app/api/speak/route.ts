@@ -38,6 +38,55 @@ function wordToNumber(text: string): string {
 async function handleSpeak(raw: string) {
   const text = wordToNumber(raw.toLowerCase().trim());
 
+  // Undo last entry
+  if (text.includes("undo") || text.includes("cancel") || text.includes("delete last")) {
+    // Find the most recent feeding and most recent diaper
+    const [lastFeed, lastDiaper] = await Promise.all([
+      supabase
+        .from("feedings")
+        .select("*")
+        .order("fed_at", { ascending: false })
+        .limit(1),
+      supabase
+        .from("diapers")
+        .select("*")
+        .order("changed_at", { ascending: false })
+        .limit(1),
+    ]);
+
+    const feed = lastFeed.data?.[0];
+    const diaper = lastDiaper.data?.[0];
+
+    // Find which is more recent
+    const feedTime = feed ? new Date(feed.fed_at).getTime() : 0;
+    const diaperTime = diaper ? new Date(diaper.changed_at).getTime() : 0;
+
+    if (feedTime === 0 && diaperTime === 0) {
+      return new NextResponse("Nothing to undo.", {
+        headers: { "Content-Type": "text/plain" },
+      });
+    }
+
+    if (feedTime > diaperTime && feed) {
+      await supabase.from("feedings").delete().eq("id", feed.id);
+      const label = feed.type === "bottle"
+        ? `${feed.amount_ml} ml bottle`
+        : `${feed.amount_ml} ml snack`;
+      return new NextResponse(`Undone! Removed last entry: ${label}.`, {
+        headers: { "Content-Type": "text/plain" },
+      });
+    } else if (diaper) {
+      await supabase.from("diapers").delete().eq("id", diaper.id);
+      return new NextResponse(`Undone! Removed last entry: ${diaper.type} diaper.`, {
+        headers: { "Content-Type": "text/plain" },
+      });
+    }
+
+    return new NextResponse("Nothing to undo.", {
+      headers: { "Content-Type": "text/plain" },
+    });
+  }
+
   // Status
   if (
     text.includes("status") ||
