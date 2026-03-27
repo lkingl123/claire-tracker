@@ -159,7 +159,43 @@ export default function Dashboard({ feedings, diapers }: Props) {
 
         {/* Daily progress bar */}
         {(() => {
-          const dailyGoal = 500;
+          // Claire's birthday: March 21, 2026
+          const birthday = new Date(2026, 2, 21);
+          const ageInDays = Math.floor(
+            (Date.now() - birthday.getTime()) / (1000 * 60 * 60 * 24)
+          );
+          const ageWeeks = Math.floor(ageInDays / 7);
+          const ageMonths = Math.floor(ageInDays / 30);
+
+          // Recommended daily intake by age (ml)
+          let dailyGoal: number;
+          let ageLabel: string;
+          if (ageInDays <= 2) {
+            dailyGoal = 60;
+            ageLabel = `Day ${ageInDays}`;
+          } else if (ageInDays <= 7) {
+            dailyGoal = 400;
+            ageLabel = `Day ${ageInDays}`;
+          } else if (ageInDays <= 14) {
+            dailyGoal = 500;
+            ageLabel = `${ageWeeks} week${ageWeeks !== 1 ? "s" : ""}`;
+          } else if (ageInDays <= 30) {
+            dailyGoal = 600;
+            ageLabel = `${ageWeeks} weeks`;
+          } else if (ageMonths <= 2) {
+            dailyGoal = 700;
+            ageLabel = `${ageMonths} month${ageMonths !== 1 ? "s" : ""}`;
+          } else if (ageMonths <= 4) {
+            dailyGoal = 800;
+            ageLabel = `${ageMonths} months`;
+          } else if (ageMonths <= 6) {
+            dailyGoal = 900;
+            ageLabel = `${ageMonths} months`;
+          } else {
+            dailyGoal = 900;
+            ageLabel = `${ageMonths} months`;
+          }
+
           const totalIntake = progress.totalMl + progress.snackMl;
           const pct = Math.min((totalIntake / dailyGoal) * 100, 100);
           const barColor =
@@ -187,8 +223,9 @@ export default function Dashboard({ feedings, diapers }: Props) {
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <div className="text-[10px] font-semibold text-brown-lighter/50 mt-1 text-right">
-                {Math.round(pct)}% of recommended
+              <div className="text-[10px] font-semibold text-brown-lighter/50 mt-1 flex justify-between">
+                <span>Claire is {ageLabel} old</span>
+                <span>{Math.round(pct)}% of recommended</span>
               </div>
             </div>
           );
