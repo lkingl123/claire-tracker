@@ -5,10 +5,14 @@ export const metadata: Metadata = {
   title: "Claire Tracker",
   description: "Baby feeding and diaper tracker for Claire",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/apple-touch-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Claire Tracker",
+    title: "Claire",
   },
 };
 
