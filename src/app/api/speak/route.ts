@@ -160,14 +160,21 @@ async function handleSpeak(raw: string) {
     );
   }
 
-  // Diaper
+  // Diaper — must specify pee, poop, or both
   let diaperType: string | null = null;
-  if (text.includes("wet") && text.includes("dirty")) diaperType = "both";
+  if (text.includes("pee") && text.includes("poop")) diaperType = "both";
   else if (text.includes("both")) diaperType = "both";
-  else if (text.includes("wet")) diaperType = "wet";
-  else if (text.includes("dirty") || text.includes("poop"))
+  else if (text.includes("pee") || text.includes("wet")) diaperType = "wet";
+  else if (text.includes("poop") || text.includes("dirty") || text.includes("poopy"))
     diaperType = "dirty";
-  else if (text === "diaper" || text === "diaper change") diaperType = "both";
+
+  // "diaper" alone — ask to be specific
+  if (!diaperType && (text.includes("diaper") || text === "diaper change")) {
+    return new NextResponse(
+      "What kind? Say diaper pee, diaper poop, or diaper both.",
+      { headers: { "Content-Type": "text/plain" } }
+    );
+  }
 
   if (diaperType) {
     const { error } = await supabase.from("diapers").insert({
