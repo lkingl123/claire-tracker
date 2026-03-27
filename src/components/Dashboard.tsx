@@ -114,18 +114,20 @@ export default function Dashboard({ feedings, diapers }: Props) {
         <div className="flex justify-between items-end">
           <div>
             <div className="text-4xl font-extrabold text-brown">
-              {progress.totalMl}
+              {progress.totalMl + progress.snackMl}
               <span className="text-lg font-semibold text-brown-lighter ml-1">
                 ml
               </span>
               <span className="text-sm font-semibold text-brown-lighter/50 ml-2">
-                ({mlToOz(progress.totalMl)} oz)
+                ({mlToOz(progress.totalMl + progress.snackMl)} oz)
               </span>
             </div>
             <div className="text-sm text-brown-lighter mt-1">
               {todayBottleFeeds} bottle{todayBottleFeeds !== 1 ? "s" : ""}
               {todaySnacks > 0 &&
                 ` + ${todaySnacks} snack${todaySnacks !== 1 ? "s" : ""}`}
+              {" "}&middot; {progress.totalMl}ml bottles
+              {progress.snackMl > 0 && ` + ${progress.snackMl}ml snacks`}
             </div>
           </div>
           <div className="text-right">
@@ -147,15 +149,6 @@ export default function Dashboard({ feedings, diapers }: Props) {
             )}
           </div>
         </div>
-
-        {progress.snackMl > 0 && (
-          <div className="mt-3 flex items-center gap-2 bg-blush/20 rounded-full px-3 py-1.5 w-fit">
-            <span className="text-sm">{"\uD83E\uDD31"}</span>
-            <span className="text-xs font-semibold text-brown-light">
-              + {progress.snackMl} ml ({mlToOz(progress.snackMl)} oz) snacking
-            </span>
-          </div>
-        )}
 
         {/* Daily progress bar */}
         {(() => {
