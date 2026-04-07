@@ -38,7 +38,16 @@ Baby feeding and diaper tracker for Claire (born March 21, 2026). Web app + Alex
 | changed_at | TIMESTAMPTZ | When the change happened |
 | created_at | TIMESTAMPTZ | Auto |
 
-**RLS**: Both tables have open policies (no auth required).
+### `push_subscriptions` table
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | Primary key |
+| endpoint | TEXT | Web Push endpoint URL (unique) |
+| p256dh | TEXT | Push encryption key |
+| auth | TEXT | Push auth secret |
+| created_at | TIMESTAMPTZ | Auto |
+
+**RLS**: All tables have open policies (no auth required).
 
 ---
 
@@ -71,6 +80,17 @@ Baby feeding and diaper tracker for Claire (born March 21, 2026). Web app + Alex
 ### `/api/quick` - Simple GET-based actions
 - `?action=bottle&ml=60`, `?action=diaper&type=wet`, `?action=status`, `?action=last`
 - Returns JSON
+
+### `/api/push/subscribe` - Web Push subscription
+- **POST** `{ endpoint, keys: { p256dh, auth } }` - saves push subscription to DB
+- Called automatically when user taps "Notify" button
+
+### `/api/cron/feed-check` - Feed reminder cron
+- **GET** - checks last feed time, sends push notification if 2h+ since last feed
+- Triggered every 5 minutes by external cron (cron-job.org)
+- Uses `web-push` library with VAPID keys to send notifications
+- 10-minute notification window to avoid repeat spam
+- Auto-cleans expired/invalid subscriptions
 
 ### `/api/status` - Full status JSON
 - GET - returns today's feeding totals, diaper counts, time since last feed
@@ -147,7 +167,7 @@ The shortcut is **5 steps** using `/api/speak` (plain text response):
 
 ### Dashboard
 - Total ml today (bottles + snacks combined)
-- Feed urgency: green (<2h), yellow (2-2.5h), red pulsing (>2.5h)
+- Feed urgency: green (<2h), yellow (2-2.5h), red pulsing (>2.5h) + push notification at 2h
 - Daily goal progress bar (age-based: scales from 60ml at day 1 to 900ml at 6 months)
 - Claire's age displayed automatically (birthday: March 21, 2026)
 - Diaper counts (wet/dirty/total)
@@ -185,8 +205,18 @@ The shortcut is **5 steps** using `/api/speak` (plain text response):
 - Installable on iPhone home screen (Add to Home Screen from Safari)
 - Custom app icon (pink gradient + baby bottle + "Claire")
 - Standalone mode (no browser bar)
-- Service worker for notifications (limited on iOS)
+- Web Push notifications via service worker (works even with phone locked)
 - 30-second polling for real-time sync between devices
+
+### Push Notifications
+- **VAPID keys** for Web Push authentication
+- Browser subscribes via `pushManager.subscribe()` on "Notify" tap
+- Subscription saved to `push_subscriptions` table
+- **cron-job.org** pings `/api/cron/feed-check` every 5 minutes
+- If 2h+ since last feed, `web-push` sends push to all subscribed devices
+- Service worker (`sw.js`) handles push events and shows notification
+- Local fallback reminder also runs when tab is open
+- Env vars needed: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (set in Vercel + `.env.local`)
 
 ---
 

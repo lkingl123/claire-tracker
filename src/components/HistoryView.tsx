@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Feeding, Diaper } from "@/lib/types";
 import { format, isToday, isYesterday } from "date-fns";
+import FeedingChart from "./FeedingChart";
 
 type Entry =
   | { kind: "feeding"; data: Feeding; time: Date }
@@ -76,6 +77,7 @@ function DaySummary({ entries }: { entries: Entry[] }) {
 
 export default function HistoryView({ onClose }: { onClose: () => void }) {
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [allFeedings, setAllFeedings] = useState<Feeding[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -93,8 +95,11 @@ export default function HistoryView({ onClose }: { onClose: () => void }) {
           .limit(200),
       ]);
 
+      const feedingsData = (feedRes.data || []) as Feeding[];
+      setAllFeedings(feedingsData);
+
       const all: Entry[] = [
-        ...(feedRes.data || []).map(
+        ...feedingsData.map(
           (f: Feeding) =>
             ({ kind: "feeding", data: f, time: new Date(f.fed_at) }) as const
         ),
@@ -130,6 +135,13 @@ export default function HistoryView({ onClose }: { onClose: () => void }) {
           {"\u2715"}
         </button>
       </div>
+
+      {/* Feeding Chart */}
+      {!loading && allFeedings.length > 0 && (
+        <div className="px-5 pb-3">
+          <FeedingChart feedings={allFeedings} />
+        </div>
+      )}
 
       {/* Scrollable log */}
       <div className="flex-1 overflow-y-auto hide-scrollbar px-5 pb-8">

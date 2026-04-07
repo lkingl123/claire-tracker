@@ -30,7 +30,7 @@ export default function Home() {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const [feedRes, diaperRes] = await Promise.all([
+    const [feedRes, diaperRes, lastFeedRes] = await Promise.all([
       supabase
         .from("feedings")
         .select("*")
@@ -41,9 +41,26 @@ export default function Home() {
         .select("*")
         .gte("changed_at", todayStart.toISOString())
         .order("changed_at", { ascending: false }),
+      // Always fetch the most recent feed (even from yesterday) for "last fed X ago"
+      supabase
+        .from("feedings")
+        .select("*")
+        .order("fed_at", { ascending: false })
+        .limit(1),
     ]);
 
-    if (feedRes.data) setFeedings(feedRes.data);
+    if (feedRes.data) {
+      const todayFeedings = feedRes.data;
+      // Merge in the last feed if it's from before today (for the timer)
+      if (lastFeedRes.data?.[0]) {
+        const lastFeed = lastFeedRes.data[0];
+        const alreadyIncluded = todayFeedings.some((f) => f.id === lastFeed.id);
+        if (!alreadyIncluded) {
+          todayFeedings.push(lastFeed);
+        }
+      }
+      setFeedings(todayFeedings);
+    }
     if (diaperRes.data) setDiapers(diaperRes.data);
     setLoading(false);
   }, []);
@@ -61,7 +78,7 @@ export default function Home() {
   useEffect(() => {
     if (feedings.length > 0) {
       const lastFeed = new Date(feedings[0].fed_at);
-      startFeedReminder(lastFeed, 150); // 2.5 hours
+      startFeedReminder(lastFeed, 120); // 2 hours
     }
   }, [feedings]);
 
