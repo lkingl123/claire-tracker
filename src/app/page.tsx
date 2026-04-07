@@ -18,6 +18,7 @@ type EditTarget = { kind: "feeding"; data: Feeding } | { kind: "diaper"; data: D
 
 export default function Home() {
   const [feedings, setFeedings] = useState<Feeding[]>([]);
+  const [feedingsWithLast, setFeedingsWithLast] = useState<Feeding[]>([]);
   const [diapers, setDiapers] = useState<Diaper[]>([]);
   const [modal, setModal] = useState<Modal>(null);
   const [loading, setLoading] = useState(true);
@@ -51,15 +52,17 @@ export default function Home() {
 
     if (feedRes.data) {
       const todayFeedings = feedRes.data;
-      // Merge in the last feed if it's from before today (for the timer)
+      setFeedings(todayFeedings);
+      // Include last feed (even from yesterday) for Dashboard timer
+      const withLast = [...todayFeedings];
       if (lastFeedRes.data?.[0]) {
         const lastFeed = lastFeedRes.data[0];
         const alreadyIncluded = todayFeedings.some((f) => f.id === lastFeed.id);
         if (!alreadyIncluded) {
-          todayFeedings.push(lastFeed);
+          withLast.push(lastFeed);
         }
       }
-      setFeedings(todayFeedings);
+      setFeedingsWithLast(withLast);
     }
     if (diaperRes.data) setDiapers(diaperRes.data);
     setLoading(false);
@@ -175,7 +178,7 @@ export default function Home() {
 
       {/* Dashboard */}
       <div className="px-5 pt-3">
-        <Dashboard feedings={feedings} diapers={diapers} />
+        <Dashboard feedings={feedingsWithLast} diapers={diapers} />
       </div>
 
       {/* Action buttons */}
