@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { Feeding, Diaper } from "@/lib/types";
 import { format, isToday, isYesterday } from "date-fns";
 import FeedingChart from "./FeedingChart";
+import DiaperChart from "./DiaperChart";
 
 type Entry =
   | { kind: "feeding"; data: Feeding; time: Date }
@@ -78,6 +79,7 @@ function DaySummary({ entries }: { entries: Entry[] }) {
 export default function HistoryView({ onClose }: { onClose: () => void }) {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [allFeedings, setAllFeedings] = useState<Feeding[]>([]);
+  const [allDiapers, setAllDiapers] = useState<Diaper[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -96,7 +98,9 @@ export default function HistoryView({ onClose }: { onClose: () => void }) {
       ]);
 
       const feedingsData = (feedRes.data || []) as Feeding[];
+      const diapersData = (diaperRes.data || []) as Diaper[];
       setAllFeedings(feedingsData);
+      setAllDiapers(diapersData);
 
       const all: Entry[] = [
         ...feedingsData.map(
@@ -140,6 +144,13 @@ export default function HistoryView({ onClose }: { onClose: () => void }) {
       {!loading && allFeedings.length > 0 && (
         <div className="px-5 pb-3">
           <FeedingChart feedings={allFeedings} />
+        </div>
+      )}
+
+      {/* Diaper Chart */}
+      {!loading && allDiapers.length > 0 && (
+        <div className="px-5 pb-3">
+          <DiaperChart diapers={allDiapers} />
         </div>
       )}
 
