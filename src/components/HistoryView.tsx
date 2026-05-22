@@ -141,6 +141,7 @@ export default function HistoryView({ onClose }: { onClose: () => void }) {
   const [allDiapers, setAllDiapers] = useState<Diaper[]>([]);
   const [loading, setLoading] = useState(true);
   const [chartTab, setChartTab] = useState<"feeding" | "diaper">("feeding");
+  const [chartsMinimized, setChartsMinimized] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -217,7 +218,25 @@ export default function HistoryView({ onClose }: { onClose: () => void }) {
         {/* Chart with toggle tabs */}
         {showCharts && (
           <div className="mb-5">
-            {hasFeeding && hasDiaper && (
+            {/* Minimize / show toggle */}
+            <button
+              onClick={() => setChartsMinimized((m) => !m)}
+              className="w-full flex items-center justify-between mb-3 active:opacity-70 transition-opacity"
+            >
+              <span className="text-xs font-extrabold uppercase tracking-wider text-brown-lighter">
+                {"📊"} Charts
+              </span>
+              <span className="text-[11px] font-bold text-brown-lighter flex items-center gap-1">
+                {chartsMinimized ? "Show" : "Hide"}
+                <span
+                  className={`transition-transform ${chartsMinimized ? "" : "rotate-180"}`}
+                >
+                  {"▾"}
+                </span>
+              </span>
+            </button>
+
+            {!chartsMinimized && hasFeeding && hasDiaper && (
               <div className="flex bg-cream-dark rounded-full p-0.5 mb-3 w-full max-w-[260px] mx-auto">
                 <button
                   onClick={() => setChartTab("feeding")}
@@ -241,10 +260,10 @@ export default function HistoryView({ onClose }: { onClose: () => void }) {
                 </button>
               </div>
             )}
-            {activeTab === "feeding" && hasFeeding && (
+            {!chartsMinimized && activeTab === "feeding" && hasFeeding && (
               <FeedingChart feedings={allFeedings} />
             )}
-            {activeTab === "diaper" && hasDiaper && (
+            {!chartsMinimized && activeTab === "diaper" && hasDiaper && (
               <DiaperChart diapers={allDiapers} />
             )}
           </div>
