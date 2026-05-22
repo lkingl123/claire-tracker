@@ -140,8 +140,8 @@ export default function HistoryView({ onClose }: { onClose: () => void }) {
   const [allFeedings, setAllFeedings] = useState<Feeding[]>([]);
   const [allDiapers, setAllDiapers] = useState<Diaper[]>([]);
   const [loading, setLoading] = useState(true);
-  const [chartTab, setChartTab] = useState<"feeding" | "diaper">("feeding");
-  const [chartsMinimized, setChartsMinimized] = useState(false);
+  const [feedingMin, setFeedingMin] = useState(false);
+  const [diaperMin, setDiaperMin] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -194,9 +194,6 @@ export default function HistoryView({ onClose }: { onClose: () => void }) {
 
   const hasFeeding = allFeedings.length > 0;
   const hasDiaper = allDiapers.length > 0;
-  const showCharts = !loading && (hasFeeding || hasDiaper);
-  // If only one kind of data exists, pin the tab to it.
-  const activeTab = !hasFeeding && hasDiaper ? "diaper" : !hasDiaper ? "feeding" : chartTab;
 
   return (
     <div className="fixed inset-0 bg-cream z-50 flex flex-col">
@@ -215,57 +212,45 @@ export default function HistoryView({ onClose }: { onClose: () => void }) {
 
       {/* Everything scrolls together */}
       <div className="flex-1 overflow-y-auto hide-scrollbar px-5 pb-8">
-        {/* Chart with toggle tabs */}
-        {showCharts && (
-          <div className="mb-5">
-            {/* Minimize / show toggle */}
+        {/* Feeding chart — independently minimizable */}
+        {!loading && hasFeeding && (
+          <div className="mb-4">
             <button
-              onClick={() => setChartsMinimized((m) => !m)}
-              className="w-full flex items-center justify-between mb-3 active:opacity-70 transition-opacity"
+              onClick={() => setFeedingMin((m) => !m)}
+              className="w-full flex items-center justify-between mb-2 active:opacity-70 transition-opacity"
             >
               <span className="text-xs font-extrabold uppercase tracking-wider text-brown-lighter">
-                {"📊"} Charts
+                {"🍼"} Feeding Trend
               </span>
               <span className="text-[11px] font-bold text-brown-lighter flex items-center gap-1">
-                {chartsMinimized ? "Show" : "Hide"}
-                <span
-                  className={`transition-transform ${chartsMinimized ? "" : "rotate-180"}`}
-                >
+                {feedingMin ? "Show" : "Hide"}
+                <span className={`transition-transform ${feedingMin ? "" : "rotate-180"}`}>
                   {"▾"}
                 </span>
               </span>
             </button>
+            {!feedingMin && <FeedingChart feedings={allFeedings} />}
+          </div>
+        )}
 
-            {!chartsMinimized && hasFeeding && hasDiaper && (
-              <div className="flex bg-cream-dark rounded-full p-0.5 mb-3 w-full max-w-[260px] mx-auto">
-                <button
-                  onClick={() => setChartTab("feeding")}
-                  className={`flex-1 text-xs font-bold px-3 py-1.5 rounded-full transition-colors ${
-                    activeTab === "feeding"
-                      ? "bg-white text-brown shadow-sm"
-                      : "text-brown-lighter"
-                  }`}
-                >
-                  {"🍼"} Feeding
-                </button>
-                <button
-                  onClick={() => setChartTab("diaper")}
-                  className={`flex-1 text-xs font-bold px-3 py-1.5 rounded-full transition-colors ${
-                    activeTab === "diaper"
-                      ? "bg-white text-brown shadow-sm"
-                      : "text-brown-lighter"
-                  }`}
-                >
-                  {"👶"} Diaper
-                </button>
-              </div>
-            )}
-            {!chartsMinimized && activeTab === "feeding" && hasFeeding && (
-              <FeedingChart feedings={allFeedings} />
-            )}
-            {!chartsMinimized && activeTab === "diaper" && hasDiaper && (
-              <DiaperChart diapers={allDiapers} />
-            )}
+        {/* Diaper chart — independently minimizable */}
+        {!loading && hasDiaper && (
+          <div className="mb-5">
+            <button
+              onClick={() => setDiaperMin((m) => !m)}
+              className="w-full flex items-center justify-between mb-2 active:opacity-70 transition-opacity"
+            >
+              <span className="text-xs font-extrabold uppercase tracking-wider text-brown-lighter">
+                {"👶"} Diaper Trend
+              </span>
+              <span className="text-[11px] font-bold text-brown-lighter flex items-center gap-1">
+                {diaperMin ? "Show" : "Hide"}
+                <span className={`transition-transform ${diaperMin ? "" : "rotate-180"}`}>
+                  {"▾"}
+                </span>
+              </span>
+            </button>
+            {!diaperMin && <DiaperChart diapers={allDiapers} />}
           </div>
         )}
 

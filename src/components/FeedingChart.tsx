@@ -57,40 +57,33 @@ function buildDailyData(feedings: Feeding[], days: number): DayData[] {
   return data;
 }
 
+const RANGES: (7 | 30 | 90)[] = [7, 30, 90];
+
 export default function FeedingChart({ feedings }: Props) {
   const [selectedDay, setSelectedDay] = useState<DayData | null>(null);
-  const [range, setRange] = useState<7 | 14>(7);
+  const [range, setRange] = useState<7 | 30 | 90>(7);
 
   const data = buildDailyData(feedings, range);
   const maxMl = Math.max(...data.map((d) => d.totalMl), 100);
+  // Thin out X-axis labels on longer ranges so they stay readable.
+  const tickInterval = range >= 90 ? 9 : range >= 30 ? 4 : 0;
 
   return (
     <div className="bg-white rounded-[20px] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-base">{"\uD83D\uDCC8"}</span>
-          <span className="text-xs font-extrabold uppercase tracking-wider text-brown-lighter">
-            Feeding Trend
-          </span>
-        </div>
+      {/* Header \u2014 range picker only (title lives in the parent's minimize bar) */}
+      <div className="flex items-center justify-end mb-3">
         <div className="flex bg-cream-dark rounded-full p-0.5">
-          <button
-            onClick={() => { setRange(7); setSelectedDay(null); }}
-            className={`text-[10px] font-bold px-2.5 py-1 rounded-full transition-colors ${
-              range === 7 ? "bg-white text-brown shadow-sm" : "text-brown-lighter"
-            }`}
-          >
-            7d
-          </button>
-          <button
-            onClick={() => { setRange(14); setSelectedDay(null); }}
-            className={`text-[10px] font-bold px-2.5 py-1 rounded-full transition-colors ${
-              range === 14 ? "bg-white text-brown shadow-sm" : "text-brown-lighter"
-            }`}
-          >
-            14d
-          </button>
+          {RANGES.map((r) => (
+            <button
+              key={r}
+              onClick={() => { setRange(r); setSelectedDay(null); }}
+              className={`text-[10px] font-bold px-2.5 py-1 rounded-full transition-colors ${
+                range === r ? "bg-white text-brown shadow-sm" : "text-brown-lighter"
+              }`}
+            >
+              {r}d
+            </button>
+          ))}
         </div>
       </div>
 
@@ -116,6 +109,7 @@ export default function FeedingChart({ feedings }: Props) {
               tick={{ fontSize: 10, fill: "#9B8585", fontWeight: 700 }}
               axisLine={false}
               tickLine={false}
+              interval={tickInterval}
             />
             <YAxis
               domain={[0, Math.ceil(maxMl / 100) * 100]}
