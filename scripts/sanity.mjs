@@ -32,6 +32,12 @@ await check("home page loads", async () => {
   assert(html.includes("Nap tracker for Claire"), "page description is not the nap tracker");
 });
 
+// Stop if this isn't the nap tracker: older deploys treated "nap" as "start a sleep" and would write data.
+if (failed) {
+  console.log("\nWrong version deployed (still building?). Stopping before voice checks.");
+  process.exit(1);
+}
+
 await check("/api/status returns today's naps", async () => {
   const res = await fetch(`${BASE}/api/status`);
   assert(res.status === 200, `status ${res.status}`);
