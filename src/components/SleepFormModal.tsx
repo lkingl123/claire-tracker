@@ -39,11 +39,18 @@ export default function SleepFormModal({ sleep, onSave, onClose }: Props) {
   const startAt = new Date(`${date}T${startTime}:00`);
   let endAt = new Date(`${date}T${endTime}:00`);
   if (endAt <= startAt) endAt = addDays(endAt, 1);
-  const preview = stillAsleep
-    ? null
-    : durationMin({ started_at: startAt.toISOString(), ended_at: endAt.toISOString() } as Sleep);
+  // Date/time inputs are empty while half-typed; don't render or save those
+  const valid = !isNaN(startAt.getTime()) && (stillAsleep || !isNaN(endAt.getTime()));
+  const preview =
+    stillAsleep || !valid
+      ? null
+      : durationMin({ started_at: startAt.toISOString(), ended_at: endAt.toISOString() } as Sleep);
 
   const handleSave = async () => {
+    if (!valid) {
+      setError("Please fill in the date and times.");
+      return;
+    }
     if (!stillAsleep && endAt > new Date()) {
       setError("Wake-up time is in the future.");
       return;
