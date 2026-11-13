@@ -3,10 +3,9 @@
 import { useState } from "react";
 
 const EXAMPLES = [
-  { category: "Bottle Feeds", emoji: "\uD83C\uDF7C", bg: "bg-peach/30", phrases: ["bottle 60", "bottle 30", "bottle 90"] },
-  { category: "Breast Snacks", emoji: "\uD83E\uDD31", bg: "bg-blush/25", phrases: ["snack 30", "snack 45", "snack 60"] },
-  { category: "Diapers", emoji: "\uD83D\uDC76", bg: "bg-mint/30", phrases: ["wet diaper", "dirty diaper", "both diaper"] },
-  { category: "Check On Claire", emoji: "\uD83D\uDCCA", bg: "bg-lavender-light/40", phrases: ["status", "last feed"] },
+  { category: "Fell Asleep", emoji: "\uD83D\uDCA4", bg: "bg-lavender-light/60", phrases: ["nap", "bedtime", "asleep"] },
+  { category: "Woke Up", emoji: "\u2600\uFE0F", bg: "bg-sunny/30", phrases: ["awake", "woke up"] },
+  { category: "Check On Claire", emoji: "\uD83D\uDCCA", bg: "bg-sky/30", phrases: ["status", "undo"] },
 ];
 
 export default function SiriGuide({ onClose }: { onClose: () => void }) {

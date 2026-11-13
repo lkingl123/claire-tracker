@@ -1,5 +1,16 @@
 # Claire Tracker - Architecture
 
+> **2026-11-13: switched to sleep-only tracking.** Feeding/diaper UI, voice commands, push reminders and the
+> feed-check cron were removed. The old version is tagged `backup-feeding-diaper-v1` in git, and the
+> `feedings` / `diapers` tables are still in Supabase (untouched). Sleep data lives in `sleeps`
+> (schema: `supabase/sleeps.sql`). All sleep logic is in `src/lib/sleep.ts`; the app, `/api/speak` (Siri),
+> `/api/alexa` and `/api/status` all use it. Sections below describing feeds/diapers are historical.
+>
+> - Naps belong to the day they start; night sleep belongs to the morning it ends in (start + 12h).
+> - Day boundaries use America/Denver even on the server (Vercel runs in UTC).
+> - Siri phrases: `nap`, `bedtime`, `asleep`, `woke up` / `awake`, `status`, `undo`.
+> - Alexa intents: StartNapIntent, StartNightIntent, FellAsleepIntent, WokeUpIntent, SleepStatusIntent, UndoIntent.
+
 ## Overview
 Baby feeding and diaper tracker for Claire (born March 21, 2026). Web app + Alexa + Siri voice control.
 

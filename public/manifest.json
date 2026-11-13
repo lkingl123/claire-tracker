@@ -1,7 +1,7 @@
 {
   "name": "Claire Tracker",
   "short_name": "Claire",
-  "description": "Baby feeding and diaper tracker for Claire",
+  "description": "Sleep tracker for Claire",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FFF8F0",

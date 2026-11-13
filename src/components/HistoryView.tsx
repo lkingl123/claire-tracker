@@ -1,187 +1,47 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
-import { Feeding, Diaper } from "@/lib/types";
 import { format, isToday, isYesterday } from "date-fns";
-import FeedingChart from "./FeedingChart";
-import DiaperChart from "./DiaperChart";
+import { Sleep } from "@/lib/types";
+import { fetchRecentSleeps, formatDuration, sleepDayKey, sortNewestFirst, summarize } from "@/lib/sleep";
+import SleepChart from "./SleepChart";
+import SleepRow from "./SleepRow";
 
-type Entry =
-  | { kind: "feeding"; data: Feeding; time: Date }
-  | { kind: "diaper"; data: Diaper; time: Date };
-
-function formatDayLabel(date: Date): string {
+function formatDayLabel(key: string): string {
+  const date = new Date(key + "T12:00:00");
   if (isToday(date)) return "Today";
   if (isYesterday(date)) return "Yesterday";
   return format(date, "EEEE, MMM d");
 }
 
-function groupByDay(entries: Entry[]): { key: string; label: string; entries: Entry[] }[] {
-  const groups: Map<string, Entry[]> = new Map();
-
-  for (const entry of entries) {
-    const key = format(entry.time, "yyyy-MM-dd");
+function groupByDay(sleeps: Sleep[]): { key: string; sleeps: Sleep[] }[] {
+  const groups = new Map<string, Sleep[]>();
+  for (const s of sleeps) {
+    const key = sleepDayKey(s);
     if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(entry);
+    groups.get(key)!.push(s);
   }
-
   return Array.from(groups.entries())
     .sort((a, b) => b[0].localeCompare(a[0]))
-    .map(([key, entries]) => ({
-      key,
-      label: formatDayLabel(new Date(key + "T12:00:00")),
-      entries: entries.sort((a, b) => b.time.getTime() - a.time.getTime()),
-    }));
-}
-
-function DaySummary({ entries }: { entries: Entry[] }) {
-  const bottles = entries.filter(
-    (e) => e.kind === "feeding" && e.data.type === "bottle"
-  );
-  const totalMl = bottles.reduce(
-    (sum, e) => sum + ((e.data as Feeding).amount_ml || 0),
-    0
-  );
-  const snacks = entries.filter(
-    (e) => e.kind === "feeding" && e.data.type === "breast_snack"
-  );
-  const diaperEntries = entries.filter((e) => e.kind === "diaper");
-  const wet = diaperEntries.filter((e) => {
-    const d = e.data as Diaper;
-    return d.type === "wet" || d.type === "both";
-  }).length;
-  const dirty = diaperEntries.filter((e) => {
-    const d = e.data as Diaper;
-    return d.type === "dirty" || d.type === "both";
-  }).length;
-
-  return (
-    <div className="flex gap-2 flex-wrap">
-      {totalMl > 0 && (
-        <span className="bg-peach/30 text-brown-light text-[11px] font-bold px-2.5 py-1 rounded-full">
-          {"🍼"} {totalMl}ml ({bottles.length})
-        </span>
-      )}
-      {snacks.length > 0 && (
-        <span className="bg-blush/25 text-brown-light text-[11px] font-bold px-2.5 py-1 rounded-full">
-          {"🤱"} {snacks.length} snack{snacks.length !== 1 ? "s" : ""}
-        </span>
-      )}
-      {diaperEntries.length > 0 && (
-        <span className="bg-mint/30 text-brown-light text-[11px] font-bold px-2.5 py-1 rounded-full">
-          {"👶"} {wet}w {dirty}d
-        </span>
-      )}
-    </div>
-  );
-}
-
-function EntryRow({ entry }: { entry: Entry }) {
-  if (entry.kind === "feeding") {
-    const f = entry.data as Feeding;
-    const isBottle = f.type === "bottle";
-    return (
-      <div className="flex items-center gap-3 bg-white rounded-2xl p-3.5 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
-        <div
-          className={`w-9 h-9 rounded-xl flex items-center justify-center text-base ${
-            isBottle ? "bg-peach/40" : "bg-blush/30"
-          }`}
-        >
-          {isBottle ? "🍼" : "🤱"}
-        </div>
-        <div className="flex-1">
-          <div className="font-bold text-xs text-brown">
-            {isBottle ? `Bottle - ${f.amount_ml} ml` : `Snack - ${f.amount_ml} ml`}
-          </div>
-        </div>
-        <div className="text-[11px] font-semibold text-brown-lighter">
-          {format(entry.time, "h:mm a")}
-        </div>
-      </div>
-    );
-  }
-
-  const d = entry.data as Diaper;
-  const isBoth = d.type === "both";
-  const emoji =
-    d.type === "wet"
-      ? "💧"
-      : d.type === "dirty"
-        ? "💩"
-        : "💧💩";
-  const label =
-    d.type === "wet" ? "Wet" : d.type === "dirty" ? "Dirty" : "Both";
-  const bg =
-    d.type === "wet"
-      ? "bg-sky/30"
-      : d.type === "dirty"
-        ? "bg-sunny/40"
-        : "bg-mint/30";
-  return (
-    <div className="flex items-center gap-3 bg-white rounded-2xl p-3.5 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
-      <div
-        className={`w-9 h-9 rounded-xl flex items-center justify-center ${isBoth ? "text-xs" : "text-base"} ${bg}`}
-      >
-        {emoji}
-      </div>
-      <div className="flex-1">
-        <div className="font-bold text-xs text-brown">Diaper - {label}</div>
-      </div>
-      <div className="text-[11px] font-semibold text-brown-lighter">
-        {format(entry.time, "h:mm a")}
-      </div>
-    </div>
-  );
+    .map(([key, list]) => ({ key, sleeps: sortNewestFirst(list) }));
 }
 
 export default function HistoryView({ onClose }: { onClose: () => void }) {
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [allFeedings, setAllFeedings] = useState<Feeding[]>([]);
-  const [allDiapers, setAllDiapers] = useState<Diaper[]>([]);
+  const [sleeps, setSleeps] = useState<Sleep[]>([]);
   const [loading, setLoading] = useState(true);
-  const [feedingMin, setFeedingMin] = useState(false);
-  const [diaperMin, setDiaperMin] = useState(false);
+  const [chartMin, setChartMin] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const now = new Date();
 
   useEffect(() => {
-    async function load() {
-      const [feedRes, diaperRes] = await Promise.all([
-        supabase
-          .from("feedings")
-          .select("*")
-          .order("fed_at", { ascending: false })
-          .limit(200),
-        supabase
-          .from("diapers")
-          .select("*")
-          .order("changed_at", { ascending: false })
-          .limit(200),
-      ]);
-
-      const feedingsData = (feedRes.data || []) as Feeding[];
-      const diapersData = (diaperRes.data || []) as Diaper[];
-      setAllFeedings(feedingsData);
-      setAllDiapers(diapersData);
-
-      const all: Entry[] = [
-        ...feedingsData.map(
-          (f: Feeding) =>
-            ({ kind: "feeding", data: f, time: new Date(f.fed_at) }) as const
-        ),
-        ...diapersData.map(
-          (d: Diaper) =>
-            ({ kind: "diaper", data: d, time: new Date(d.changed_at) }) as const
-        ),
-      ];
-
-      setEntries(all);
+    // ~90 days at a handful of sleeps per day
+    fetchRecentSleeps(1000).then((data) => {
+      setSleeps(data);
       setLoading(false);
-    }
-    load();
+    });
   }, []);
 
-  const grouped = groupByDay(entries);
+  const grouped = groupByDay(sleeps);
 
   function toggleDay(key: string) {
     setCollapsed((prev) => {
@@ -192,16 +52,10 @@ export default function HistoryView({ onClose }: { onClose: () => void }) {
     });
   }
 
-  const hasFeeding = allFeedings.length > 0;
-  const hasDiaper = allDiapers.length > 0;
-
   return (
     <div className="fixed inset-0 bg-cream z-50 flex flex-col">
-      {/* Header (fixed) */}
       <div className="px-5 pt-8 pb-3 flex items-center justify-between shrink-0">
-        <h1 className="text-xl font-extrabold text-brown">
-          {"📋"} History
-        </h1>
+        <h1 className="text-xl font-extrabold text-brown">{"📋"} Sleep History</h1>
         <button
           onClick={onClose}
           className="w-10 h-10 rounded-full bg-white shadow-[0_1px_6px_rgba(0,0,0,0.06)] flex items-center justify-center text-brown-light font-bold active:scale-90 transition-transform"
@@ -210,73 +64,42 @@ export default function HistoryView({ onClose }: { onClose: () => void }) {
         </button>
       </div>
 
-      {/* Everything scrolls together */}
       <div className="flex-1 overflow-y-auto hide-scrollbar px-5 pb-8">
-        {/* Feeding chart — independently minimizable */}
-        {!loading && hasFeeding && (
-          <div className="mb-4">
-            <button
-              onClick={() => setFeedingMin((m) => !m)}
-              className="w-full flex items-center justify-between mb-2 active:opacity-70 transition-opacity"
-            >
-              <span className="text-xs font-extrabold uppercase tracking-wider text-brown-lighter">
-                {"🍼"} Feeding Trend
-              </span>
-              <span className="text-[11px] font-bold text-brown-lighter flex items-center gap-1">
-                {feedingMin ? "Show" : "Hide"}
-                <span className={`transition-transform ${feedingMin ? "" : "rotate-180"}`}>
-                  {"▾"}
-                </span>
-              </span>
-            </button>
-            {!feedingMin && <FeedingChart feedings={allFeedings} />}
-          </div>
-        )}
-
-        {/* Diaper chart — independently minimizable */}
-        {!loading && hasDiaper && (
+        {!loading && sleeps.length > 0 && (
           <div className="mb-5">
             <button
-              onClick={() => setDiaperMin((m) => !m)}
+              onClick={() => setChartMin((m) => !m)}
               className="w-full flex items-center justify-between mb-2 active:opacity-70 transition-opacity"
             >
               <span className="text-xs font-extrabold uppercase tracking-wider text-brown-lighter">
-                {"👶"} Diaper Trend
+                {"🌙"} Sleep Trend
               </span>
               <span className="text-[11px] font-bold text-brown-lighter flex items-center gap-1">
-                {diaperMin ? "Show" : "Hide"}
-                <span className={`transition-transform ${diaperMin ? "" : "rotate-180"}`}>
-                  {"▾"}
-                </span>
+                {chartMin ? "Show" : "Hide"}
+                <span className={`transition-transform ${chartMin ? "" : "rotate-180"}`}>{"▾"}</span>
               </span>
             </button>
-            {!diaperMin && <DiaperChart diapers={allDiapers} />}
+            {!chartMin && <SleepChart sleeps={sleeps} />}
           </div>
         )}
 
-        {/* Day log */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <div className="text-3xl animate-bounce">{"📋"}</div>
             <div className="text-brown-lighter font-semibold">Loading...</div>
           </div>
-        ) : entries.length === 0 ? (
+        ) : sleeps.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-3xl mb-3">{"🌟"}</div>
-            <div className="text-brown-lighter font-semibold">
-              No history yet
-            </div>
+            <div className="text-brown-lighter font-semibold">No sleep history yet</div>
           </div>
         ) : (
           <div className="space-y-3">
             {grouped.map((group) => {
               const isCollapsed = collapsed.has(group.key);
+              const s = summarize(group.sleeps, now);
               return (
-                <div
-                  key={group.key}
-                  className="bg-white/40 rounded-[20px] p-3"
-                >
-                  {/* Day header — tap to collapse/expand */}
+                <div key={group.key} className="bg-white/40 rounded-[20px] p-3">
                   <button
                     onClick={() => toggleDay(group.key)}
                     className="w-full flex items-center gap-3 text-left active:opacity-70 transition-opacity"
@@ -289,30 +112,25 @@ export default function HistoryView({ onClose }: { onClose: () => void }) {
                       {"▶"}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-extrabold text-brown">
-                        {group.label}
-                      </div>
-                      <div className="mt-1.5">
-                        <DaySummary entries={group.entries} />
+                      <div className="text-sm font-extrabold text-brown">{formatDayLabel(group.key)}</div>
+                      <div className="mt-1.5 flex gap-2 flex-wrap">
+                        <span className="bg-lavender-light text-brown-light text-[11px] font-bold px-2.5 py-1 rounded-full">
+                          {"🌙"} {formatDuration(s.nightMin)}
+                        </span>
+                        <span className="bg-sky/30 text-brown-light text-[11px] font-bold px-2.5 py-1 rounded-full">
+                          {"💤"} {formatDuration(s.napMin)} ({s.napCount})
+                        </span>
                       </div>
                     </div>
-                    <span className="text-[11px] font-bold text-brown-lighter shrink-0">
-                      {group.entries.length}
+                    <span className="text-xs font-extrabold text-brown shrink-0">
+                      {formatDuration(s.totalMin)}
                     </span>
                   </button>
 
-                  {/* Entries */}
                   {!isCollapsed && (
                     <div className="space-y-2 mt-3">
-                      {group.entries.map((entry) => (
-                        <EntryRow
-                          key={
-                            entry.kind === "feeding"
-                              ? `f-${(entry.data as Feeding).id}`
-                              : `d-${(entry.data as Diaper).id}`
-                          }
-                          entry={entry}
-                        />
+                      {group.sleeps.map((sleep) => (
+                        <SleepRow key={sleep.id} sleep={sleep} now={now} />
                       ))}
                     </div>
                   )}

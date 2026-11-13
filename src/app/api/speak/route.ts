@@ -1,264 +1,71 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { SleepKind } from "@/lib/types";
+import {
+  deleteLastSleep,
+  durationMin,
+  endSleep,
+  formatDurationSpoken,
+  kindForTime,
+  startSleep,
+  statusSpeech,
+} from "@/lib/sleep";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
-function mlToOz(ml: number): string {
-  return (ml / 29.5735).toFixed(1);
+// Siri Shortcut endpoint. Returns plain text so Siri can speak it directly.
+function say(text: string) {
+  return new NextResponse(text, { headers: { "Content-Type": "text/plain" } });
 }
 
-function formatMinutes(min: number): string {
-  if (min < 60) return `${Math.round(min)} minutes`;
-  const h = Math.floor(min / 60);
-  const m = Math.round(min % 60);
-  return m > 0 ? `${h} hours and ${m} minutes` : `${h} hours`;
-}
-
-function wordToNumber(text: string): string {
-  const words: Record<string, string> = {
-    zero: "0", one: "1", two: "2", three: "3", four: "4", five: "5",
-    six: "6", seven: "7", eight: "8", nine: "9", ten: "10",
-    fifteen: "15", twenty: "20", "twenty five": "25", thirty: "30",
-    "thirty five": "35", forty: "40", "forty five": "45", fifty: "50",
-    sixty: "60", seventy: "70", "seventy five": "75", eighty: "80",
-    ninety: "90", hundred: "100",
-  };
-  let result = text;
-  for (const [word, num] of Object.entries(words).sort(
-    (a, b) => b[0].length - a[0].length
-  )) {
-    result = result.replace(new RegExp(word, "gi"), num);
-  }
-  return result;
-}
+// Match at word starts so "up" doesn't hit "update" and "nap" doesn't hit "snap"
+const has = (text: string, words: string[]) =>
+  words.some((w) => new RegExp(`\\b${w}`).test(text));
 
 async function handleSpeak(raw: string) {
-  const text = wordToNumber(raw.toLowerCase().trim());
+  const text = raw.toLowerCase().trim();
 
-  // Undo last entry
-  if (text.includes("undo") || text.includes("cancel") || text.includes("delete last")) {
-    // Find the most recent feeding and most recent diaper
-    const [lastFeed, lastDiaper] = await Promise.all([
-      supabase
-        .from("feedings")
-        .select("*")
-        .order("fed_at", { ascending: false })
-        .limit(1),
-      supabase
-        .from("diapers")
-        .select("*")
-        .order("changed_at", { ascending: false })
-        .limit(1),
-    ]);
-
-    const feed = lastFeed.data?.[0];
-    const diaper = lastDiaper.data?.[0];
-
-    // Find which is more recent
-    const feedTime = feed ? new Date(feed.fed_at).getTime() : 0;
-    const diaperTime = diaper ? new Date(diaper.changed_at).getTime() : 0;
-
-    if (feedTime === 0 && diaperTime === 0) {
-      return new NextResponse("Nothing to undo.", {
-        headers: { "Content-Type": "text/plain" },
-      });
-    }
-
-    if (feedTime > diaperTime && feed) {
-      await supabase.from("feedings").delete().eq("id", feed.id);
-      const label = feed.type === "bottle"
-        ? `${feed.amount_ml} ml bottle`
-        : `${feed.amount_ml} ml snack`;
-      return new NextResponse(`Undone! Removed last entry: ${label}.`, {
-        headers: { "Content-Type": "text/plain" },
-      });
-    } else if (diaper) {
-      await supabase.from("diapers").delete().eq("id", diaper.id);
-      return new NextResponse(`Undone! Removed last entry: ${diaper.type} diaper.`, {
-        headers: { "Content-Type": "text/plain" },
-      });
-    }
-
-    return new NextResponse("Nothing to undo.", {
-      headers: { "Content-Type": "text/plain" },
-    });
+  if (has(text, ["undo", "cancel", "delete last"])) {
+    const removed = await deleteLastSleep();
+    return say(removed ? `Undone! Removed the last ${removed.kind === "night" ? "night sleep" : "nap"}.` : "Nothing to undo.");
   }
 
-  // Status
-  if (
-    text.includes("status") ||
-    text.includes("summary") ||
-    text.includes("how")
-  ) {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const [feedRes, diaperRes] = await Promise.all([
-      supabase
-        .from("feedings")
-        .select("*")
-        .gte("fed_at", todayStart.toISOString())
-        .order("fed_at", { ascending: false }),
-      supabase
-        .from("diapers")
-        .select("*")
-        .gte("changed_at", todayStart.toISOString()),
-    ]);
-    const feedings = feedRes.data || [];
-    const diapers = diaperRes.data || [];
-    const bottles = feedings.filter((f) => f.type === "bottle");
-    const totalMl = bottles.reduce((s, f) => s + (f.amount_ml || 0), 0);
-    const snackMl = feedings
-      .filter((f) => f.type === "breast_snack")
-      .reduce((s, f) => s + (f.amount_ml || 0), 0);
-    const wet = diapers.filter(
-      (d) => d.type === "wet" || d.type === "both"
-    ).length;
-    const dirty = diapers.filter(
-      (d) => d.type === "dirty" || d.type === "both"
-    ).length;
-    let speech = `Today: ${bottles.length} bottles, ${totalMl} ml.`;
-    if (snackMl > 0) speech += ` Plus ${snackMl} ml in snacks.`;
-    speech += ` ${wet} wet and ${dirty} dirty diapers.`;
-    if (feedings.length > 0) {
-      const minAgo =
-        (Date.now() - new Date(feedings[0].fed_at).getTime()) / (1000 * 60);
-      speech += ` Last feed ${formatMinutes(minAgo)} ago.`;
-      if (minAgo >= 150) speech += " She needs to eat soon!";
-    }
-    return new NextResponse(speech, { headers: { "Content-Type": "text/plain" } });
+  if (has(text, ["status", "summary", "how", "last"])) {
+    return say(await statusSpeech());
   }
 
-  // Last feed
-  if (text.includes("last") || text.includes("when") || text.includes("ago")) {
-    const { data } = await supabase
-      .from("feedings")
-      .select("*")
-      .order("fed_at", { ascending: false })
-      .limit(1);
-    if (!data || data.length === 0) {
-      return new NextResponse("No feeds logged yet.", {
-        headers: { "Content-Type": "text/plain" },
-      });
-    }
-    const last = data[0];
-    const minAgo =
-      (Date.now() - new Date(last.fed_at).getTime()) / (1000 * 60);
-    const warning = minAgo >= 150 ? " She needs to eat soon!" : "";
-    const speech =
-      last.type === "bottle"
-        ? `Last feed was a ${last.amount_ml} ml bottle, ${formatMinutes(minAgo)} ago.${warning}`
-        : `Last was a ${last.amount_ml} ml snack, ${formatMinutes(minAgo)} ago.${warning}`;
-    return new NextResponse(speech, {
-      headers: { "Content-Type": "text/plain" },
-    });
+  // Check "awake" before "asleep" ("woke up" / "she's up" / "awake")
+  if (has(text, ["awake", "woke", "wake", "up\\b"])) {
+    const finished = await endSleep();
+    if (!finished) return say("Claire wasn't marked as asleep.");
+    return say(`Good morning! Claire slept for ${formatDurationSpoken(durationMin(finished))}.`);
   }
 
-  // Bottle
-  const bottleMatch = text.match(
-    /(?:bottle|fed|feed)\s*(\d+)|(\d+)\s*(?:ml|milliliter)/
-  );
-  if (bottleMatch) {
-    let ml = parseInt(bottleMatch[1] || bottleMatch[2]);
-    if (ml <= 10) ml = Math.round(ml * 29.5735);
-    const { error } = await supabase.from("feedings").insert({
-      type: "bottle",
-      amount_ml: ml,
-      fed_at: new Date().toISOString(),
-    });
-    if (error)
-      return new NextResponse("Failed to log feed.", {
-        headers: { "Content-Type": "text/plain" },
-      });
-    return new NextResponse(
-      `Done! Logged ${ml} ml, ${mlToOz(ml)} ounce bottle feed.`,
-      { headers: { "Content-Type": "text/plain" } }
-    );
-  }
-  if (text === "bottle" || text === "fed" || text === "feed") {
-    return new NextResponse(
-      "How many ml? Say bottle followed by a number, like bottle 30.",
-      { headers: { "Content-Type": "text/plain" } }
-    );
+  if (has(text, ["asleep", "sleep", "nap", "bed", "night"])) {
+    const kind: SleepKind = has(text, ["nap"])
+      ? "nap"
+      : has(text, ["bed", "night"])
+        ? "night"
+        : kindForTime();
+    const { sleep, alreadyAsleep } = await startSleep(kind);
+    if (alreadyAsleep && sleep)
+      return say(`Claire is already asleep, for ${formatDurationSpoken(durationMin(sleep))} so far.`);
+    if (!sleep) return say("Sorry, I couldn't log that.");
+    return say(kind === "night" ? "Goodnight Claire! Bedtime logged." : "Nap started. Sweet dreams!");
   }
 
-  // Snack
-  const snackMatch = text.match(/snack\s*(\d+)|(\d+)\s*ml.*snack/);
-  if (snackMatch) {
-    const ml = parseInt(snackMatch[1] || snackMatch[2]);
-    const { error } = await supabase.from("feedings").insert({
-      type: "breast_snack",
-      amount_ml: ml,
-      fed_at: new Date().toISOString(),
-    });
-    if (error)
-      return new NextResponse("Failed to log snack.", {
-        headers: { "Content-Type": "text/plain" },
-      });
-    return new NextResponse(
-      `Done! Logged ${ml} ml breast snack.`,
-      { headers: { "Content-Type": "text/plain" } }
-    );
-  }
-  if (text.includes("snack") || text.includes("breast")) {
-    return new NextResponse(
-      "How many ml? Say snack followed by a number, like snack 30.",
-      { headers: { "Content-Type": "text/plain" } }
-    );
-  }
-
-  // Diaper — must specify pee, poop, or both
-  let diaperType: string | null = null;
-  if (text.includes("pee") && text.includes("poop")) diaperType = "both";
-  else if (text.includes("both")) diaperType = "both";
-  else if (text.includes("pee") || text.includes("wet")) diaperType = "wet";
-  else if (text.includes("poop") || text.includes("dirty") || text.includes("poopy"))
-    diaperType = "dirty";
-
-  // "diaper" alone — ask to be specific
-  if (!diaperType && (text.includes("diaper") || text === "diaper change")) {
-    return new NextResponse(
-      "What kind? Say diaper pee, diaper poop, or diaper both.",
-      { headers: { "Content-Type": "text/plain" } }
-    );
-  }
-
-  if (diaperType) {
-    const { error } = await supabase.from("diapers").insert({
-      type: diaperType,
-      changed_at: new Date().toISOString(),
-    });
-    if (error)
-      return new NextResponse("Failed to log diaper.", {
-        headers: { "Content-Type": "text/plain" },
-      });
-    return new NextResponse(`Done! Logged ${diaperType} diaper.`, {
-      headers: { "Content-Type": "text/plain" },
-    });
-  }
-
-  return new NextResponse(
-    `I heard ${raw}. Try: bottle 30, snack 30, wet diaper, status, or last feed.`,
-    { headers: { "Content-Type": "text/plain" } }
-  );
+  return say(`I heard ${raw}. Try: nap, bedtime, woke up, status, or undo.`);
 }
 
-// GET /api/speak?q=bottle+30
+// GET /api/speak?q=nap
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const raw = searchParams.get("q") || "";
-  return handleSpeak(raw);
+  return handleSpeak(searchParams.get("q") || "");
 }
 
-// POST /api/speak  body: { q: "bottle 30" }
+// POST /api/speak  body: { q: "nap" }
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     return handleSpeak(body.q || "");
   } catch {
-    const text = await request.text();
-    return handleSpeak(text);
+    return handleSpeak(await request.text());
   }
 }

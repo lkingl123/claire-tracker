@@ -1,213 +1,44 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const verifier = require("alexa-verifier");
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
-function mlToOz(ml: number): string {
-  return (ml / 29.5735).toFixed(1);
-}
-
-function formatMinutes(min: number): string {
-  if (min < 60) return `${Math.round(min)} minutes`;
-  const h = Math.floor(min / 60);
-  const m = Math.round(min % 60);
-  return m > 0 ? `${h} hours and ${m} minutes` : `${h} hours`;
-}
+import {
+  deleteLastSleep,
+  durationMin,
+  endSleep,
+  formatDurationSpoken,
+  kindForTime,
+  startSleep,
+  statusSpeech,
+} from "@/lib/sleep";
+import { SleepKind } from "@/lib/types";
 
 function buildResponse(speech: string, shouldEnd: boolean = true) {
-  return new NextResponse(
-    JSON.stringify({
-      version: "1.0",
-      sessionAttributes: {},
-      response: {
-        outputSpeech: {
-          type: "PlainText",
-          text: speech,
-        },
-        shouldEndSession: shouldEnd,
-      },
-    }),
-    {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json;charset=UTF-8",
-      },
-    }
-  );
-}
-
-async function getStatus() {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-
-  const [feedRes, diaperRes] = await Promise.all([
-    supabase
-      .from("feedings")
-      .select("*")
-      .gte("fed_at", todayStart.toISOString())
-      .order("fed_at", { ascending: false }),
-    supabase
-      .from("diapers")
-      .select("*")
-      .gte("changed_at", todayStart.toISOString())
-      .order("changed_at", { ascending: false }),
-  ]);
-
-  return {
-    feedings: feedRes.data || [],
-    diapers: diaperRes.data || [],
-  };
-}
-
-async function handleLastFeed() {
-  const { feedings } = await getStatus();
-  if (feedings.length === 0) {
-    return buildResponse("Claire hasn't been fed yet today.");
-  }
-
-  const last = feedings[0];
-  const minAgo = (Date.now() - new Date(last.fed_at).getTime()) / (1000 * 60);
-  const timeStr = formatMinutes(minAgo);
-
-  if (last.type === "bottle") {
-    return buildResponse(
-      `Claire's last feed was a bottle of ${last.amount_ml} milliliters, that's ${mlToOz(last.amount_ml)} ounces, about ${timeStr} ago.${
-        minAgo >= 150
-          ? " It's been over 2 and a half hours. She probably needs to eat soon!"
-          : ""
-      }`
-    );
-  } else {
-    return buildResponse(
-      `Claire had a breast snack of ${last.amount_ml} ml, about ${timeStr} ago.${
-        minAgo >= 150
-          ? " It's been over 2 and a half hours. She probably needs a full feed soon!"
-          : ""
-      }`
-    );
-  }
-}
-
-async function handleDailyStatus() {
-  const { feedings, diapers } = await getStatus();
-
-  const bottles = feedings.filter((f) => f.type === "bottle");
-  const snacks = feedings.filter((f) => f.type === "breast_snack");
-  const totalMl = bottles.reduce((sum, f) => sum + (f.amount_ml || 0), 0);
-  const wet = diapers.filter(
-    (d) => d.type === "wet" || d.type === "both"
-  ).length;
-  const dirty = diapers.filter(
-    (d) => d.type === "dirty" || d.type === "both"
-  ).length;
-
-  let speech = `Today Claire has had ${bottles.length} bottle${bottles.length !== 1 ? "s" : ""} totaling ${totalMl} milliliters, that's ${mlToOz(totalMl)} ounces.`;
-
-  if (snacks.length > 0) {
-    speech += ` Plus ${snacks.length} breast snack${snacks.length !== 1 ? "s" : ""}.`;
-  }
-
-  speech += ` For diapers, ${wet} wet and ${dirty} dirty, ${diapers.length} total.`;
-
-  return buildResponse(speech);
-}
-
-async function handleLogBottle(ml: number) {
-  const { error } = await supabase.from("feedings").insert({
-    type: "bottle",
-    amount_ml: ml,
-    fed_at: new Date().toISOString(),
+  return NextResponse.json({
+    version: "1.0",
+    sessionAttributes: {},
+    response: {
+      outputSpeech: { type: "PlainText", text: speech },
+      shouldEndSession: shouldEnd,
+    },
   });
-
-  if (error) {
-    return buildResponse("Sorry, I couldn't log that feed. Please try again.");
-  }
-
-  return buildResponse(
-    `Got it! Logged a ${ml} milliliter bottle feed for Claire. That's ${mlToOz(ml)} ounces.`
-  );
 }
 
-async function handleLogSnack(ml: number) {
-  const { error } = await supabase.from("feedings").insert({
-    type: "breast_snack",
-    amount_ml: ml,
-    fed_at: new Date().toISOString(),
-  });
-
-  if (error) {
-    return buildResponse(
-      "Sorry, I couldn't log that snack. Please try again."
-    );
-  }
-
-  return buildResponse(
-    `Got it! Logged a ${ml} milliliter breast snack for Claire. That's ${mlToOz(ml)} ounces.`
-  );
+async function handleStart(kind: SleepKind) {
+  const { sleep, alreadyAsleep } = await startSleep(kind);
+  if (alreadyAsleep && sleep)
+    return buildResponse(`Claire is already asleep, for ${formatDurationSpoken(durationMin(sleep))} so far.`);
+  if (!sleep) return buildResponse("Sorry, I couldn't log that.");
+  return buildResponse(kind === "night" ? "Goodnight Claire! Bedtime logged." : "Nap started. Sweet dreams!");
 }
 
-async function handleLogDiaper(type: string) {
-  const diaperType =
-    type === "pee" || type === "wet" ? "wet" : type === "poop" || type === "dirty" ? "dirty" : "both";
-
-  const { error } = await supabase.from("diapers").insert({
-    type: diaperType,
-    changed_at: new Date().toISOString(),
-  });
-
-  if (error) {
-    return buildResponse(
-      "Sorry, I couldn't log that diaper. Please try again."
-    );
-  }
-
-  return buildResponse(`Got it! Logged a ${diaperType} diaper for Claire.`);
-}
-
-async function handleDiaperCount() {
-  const { diapers } = await getStatus();
-  const wet = diapers.filter(
-    (d) => d.type === "wet" || d.type === "both"
-  ).length;
-  const dirty = diapers.filter(
-    (d) => d.type === "dirty" || d.type === "both"
-  ).length;
-
-  return buildResponse(
-    `Claire has had ${diapers.length} diaper changes today. ${wet} wet and ${dirty} dirty.`
-  );
+async function handleWake() {
+  const finished = await endSleep();
+  if (!finished) return buildResponse("Claire wasn't marked as asleep.");
+  return buildResponse(`Good morning! Claire slept for ${formatDurationSpoken(durationMin(finished))}.`);
 }
 
 async function handleUndo() {
-  const [lastFeed, lastDiaper] = await Promise.all([
-    supabase.from("feedings").select("*").order("fed_at", { ascending: false }).limit(1),
-    supabase.from("diapers").select("*").order("changed_at", { ascending: false }).limit(1),
-  ]);
-
-  const feed = lastFeed.data?.[0];
-  const diaper = lastDiaper.data?.[0];
-  const feedTime = feed ? new Date(feed.fed_at).getTime() : 0;
-  const diaperTime = diaper ? new Date(diaper.changed_at).getTime() : 0;
-
-  if (feedTime === 0 && diaperTime === 0) {
-    return buildResponse("Nothing to undo.");
-  }
-
-  if (feedTime > diaperTime && feed) {
-    await supabase.from("feedings").delete().eq("id", feed.id);
-    const label = feed.type === "bottle" ? `${feed.amount_ml} ml bottle` : `${feed.amount_ml} ml snack`;
-    return buildResponse(`Undone! Removed last entry: ${label}.`);
-  } else if (diaper) {
-    await supabase.from("diapers").delete().eq("id", diaper.id);
-    return buildResponse(`Undone! Removed last entry: ${diaper.type} diaper.`);
-  }
-
-  return buildResponse("Nothing to undo.");
+  const removed = await deleteLastSleep();
+  if (!removed) return buildResponse("Nothing to undo.");
+  return buildResponse(`Undone! Removed the last ${removed.kind === "night" ? "night sleep" : "nap"}.`);
 }
 
 export async function POST(request: NextRequest) {
@@ -215,30 +46,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const requestType = body?.request?.type;
     const intentName = body?.request?.intent?.name;
-    const slots = body?.request?.intent?.slots || {};
 
-    // Launch request
     if (requestType === "LaunchRequest") {
-      const { feedings } = await getStatus();
-      if (feedings.length > 0) {
-        const last = feedings[0];
-        const minAgo =
-          (Date.now() - new Date(last.fed_at).getTime()) / (1000 * 60);
-        const timeStr = formatMinutes(minAgo);
-        const urgency =
-          minAgo >= 150 ? " She might need to eat soon!" : "";
-        return buildResponse(
-          `Last feed was ${timeStr} ago.${urgency} What would you like to log?`,
-          false
-        );
-      }
-      return buildResponse(
-        "No feeds logged yet today. What would you like to log?",
-        false
-      );
+      return buildResponse(`${await statusSpeech()} What would you like to log?`, false);
     }
 
-    // Session ended
     if (
       requestType === "SessionEndedRequest" ||
       intentName === "AMAZON.StopIntent" ||
@@ -247,48 +59,22 @@ export async function POST(request: NextRequest) {
       return buildResponse("Bye! Take care of Claire!");
     }
 
-    // Help
     if (intentName === "AMAZON.HelpIntent") {
       return buildResponse(
-        "You can say things like: log a 60 milliliter bottle, log a breast snack, log a wet diaper, when was the last feed, or how is Claire doing today.",
+        "You can say things like: Claire is napping, it's bedtime, Claire woke up, or how is Claire sleeping.",
         false
       );
     }
 
-    // Custom intents
-    if (intentName === "LastFeedIntent") {
-      return handleLastFeed();
-    }
-
-    if (intentName === "DailyStatusIntent") {
-      return handleDailyStatus();
-    }
-
-    if (intentName === "LogBottleIntent") {
-      const ml = parseInt(slots.amount?.value) || 60;
-      return handleLogBottle(ml);
-    }
-
-    if (intentName === "LogSnackIntent") {
-      const ml = parseInt(slots.amount?.value) || 30;
-      return handleLogSnack(ml);
-    }
-
-    if (intentName === "LogDiaperIntent") {
-      const type = slots.diaperType?.value || "both";
-      return handleLogDiaper(type);
-    }
-
-    if (intentName === "DiaperCountIntent") {
-      return handleDiaperCount();
-    }
-
-    if (intentName === "UndoIntent") {
-      return handleUndo();
-    }
+    if (intentName === "StartNapIntent") return handleStart("nap");
+    if (intentName === "StartNightIntent") return handleStart("night");
+    if (intentName === "FellAsleepIntent") return handleStart(kindForTime());
+    if (intentName === "WokeUpIntent") return handleWake();
+    if (intentName === "SleepStatusIntent") return buildResponse(await statusSpeech());
+    if (intentName === "UndoIntent") return handleUndo();
 
     return buildResponse(
-      "I didn't understand that. Try saying: when was the last feed, or log a 60 milliliter bottle.",
+      "I didn't understand that. Try saying: Claire is napping, or Claire woke up.",
       false
     );
   } catch {

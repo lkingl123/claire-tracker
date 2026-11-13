@@ -4,99 +4,72 @@
       "invocationName": "baby tracker",
       "intents": [
         {
-          "name": "LastFeedIntent",
+          "name": "StartNapIntent",
           "samples": [
-            "when was the last feed",
-            "when did claire eat",
-            "when was she last fed",
-            "last feed",
-            "last feeding",
-            "how long since last feed",
-            "how long ago did she eat",
-            "when did she last eat"
+            "claire is napping",
+            "she is napping",
+            "start a nap",
+            "nap time",
+            "log a nap",
+            "she went down for a nap",
+            "claire is taking a nap",
+            "nap"
           ]
         },
         {
-          "name": "DailyStatusIntent",
+          "name": "StartNightIntent",
           "samples": [
+            "bedtime",
+            "it is bedtime",
+            "claire went to bed",
+            "she went to bed",
+            "start night sleep",
+            "log bedtime",
+            "goodnight",
+            "night night"
+          ]
+        },
+        {
+          "name": "FellAsleepIntent",
+          "samples": [
+            "claire fell asleep",
+            "she fell asleep",
+            "claire is asleep",
+            "she is asleep",
+            "claire is sleeping",
+            "she is sleeping",
+            "log sleep",
+            "start sleep"
+          ]
+        },
+        {
+          "name": "WokeUpIntent",
+          "samples": [
+            "claire woke up",
+            "she woke up",
+            "claire is awake",
+            "she is awake",
+            "she is up",
+            "claire is up",
+            "log wake up",
+            "wake up",
+            "end sleep"
+          ]
+        },
+        {
+          "name": "SleepStatusIntent",
+          "samples": [
+            "how is claire sleeping",
             "how is claire doing",
-            "how is claire doing today",
-            "daily status",
-            "today's summary",
+            "how long has she been asleep",
+            "how long has she been awake",
+            "how long has she slept",
+            "how much has she slept today",
+            "is claire asleep",
+            "sleep status",
+            "status",
             "give me a summary",
-            "how much has she eaten",
-            "how much has she eaten today",
-            "status update",
-            "what's the status"
-          ]
-        },
-        {
-          "name": "LogBottleIntent",
-          "slots": [
-            {
-              "name": "amount",
-              "type": "AMAZON.NUMBER"
-            }
-          ],
-          "samples": [
-            "log a bottle",
-            "log a {amount} milliliter bottle",
-            "log {amount} milliliters",
-            "log {amount} ml bottle",
-            "log bottle {amount}",
-            "bottle feed {amount} milliliters",
-            "she drank {amount} milliliters",
-            "she had {amount} ml",
-            "fed her {amount} ml",
-            "log a bottle feed of {amount}",
-            "bottle {amount}"
-          ]
-        },
-        {
-          "name": "LogSnackIntent",
-          "slots": [
-            {
-              "name": "amount",
-              "type": "AMAZON.NUMBER"
-            }
-          ],
-          "samples": [
-            "log a snack",
-            "log a breast snack",
-            "log a {amount} milliliter snack",
-            "breast snack {amount} milliliters",
-            "snack {amount} milliliters",
-            "snack {amount} ml",
-            "log snack {amount}"
-          ]
-        },
-        {
-          "name": "LogDiaperIntent",
-          "slots": [
-            {
-              "name": "diaperType",
-              "type": "DiaperType"
-            }
-          ],
-          "samples": [
-            "log a diaper",
-            "log a {diaperType} diaper",
-            "diaper change",
-            "{diaperType} diaper",
-            "diaper {diaperType}",
-            "changed her diaper it was {diaperType}",
-            "she had a {diaperType} diaper",
-            "log diaper {diaperType}"
-          ]
-        },
-        {
-          "name": "DiaperCountIntent",
-          "samples": [
-            "how many diapers",
-            "how many diapers today",
-            "diaper count",
-            "how many diaper changes",
-            "diaper status"
+            "what is the status"
           ]
         },
         {
@@ -126,16 +99,7 @@
           "samples": []
         }
       ],
-      "types": [
-        {
-          "name": "DiaperType",
-          "values": [
-            { "name": { "value": "pee", "synonyms": ["wet"] } },
-            { "name": { "value": "poop", "synonyms": ["dirty", "poopy"] } },
-            { "name": { "value": "both" } }
-          ]
-        }
-      ]
+      "types": []
     }
   }
 }

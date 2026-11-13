@@ -1,261 +1,145 @@
 "use client";
 
-import { Feeding, Diaper } from "@/lib/types";
-import {
-  getFeedingProgress,
-  predictNextFeed,
-  formatTimeSince,
-} from "@/lib/predictions";
 import { format } from "date-fns";
+import { Sleep, SleepKind } from "@/lib/types";
+import {
+  SLEEP_GOAL_HOURS,
+  ageLabel,
+  dayKey,
+  durationMin,
+  formatDuration,
+  kindForTime,
+  sleepsForDay,
+  summarize,
+} from "@/lib/sleep";
 
 interface Props {
-  feedings: Feeding[];
-  diapers: Diaper[];
+  sleeps: Sleep[]; // recent sleeps, newest first
+  now: Date;
+  onStart: (kind: SleepKind) => void;
+  onWake: () => void;
 }
 
-function mlToOz(ml: number): string {
-  return (ml / 29.5735).toFixed(1);
-}
+export default function Dashboard({ sleeps, now, onStart, onWake }: Props) {
+  const latest = sleeps[0];
+  const active = latest && !latest.ended_at ? latest : null;
+  const today = summarize(sleepsForDay(sleeps, dayKey(now)), now);
+  const suggested = kindForTime(now);
 
-// Feed urgency thresholds (in minutes)
-const FEED_OK = 120; // under 2h = green/good
-const FEED_SOON = 150; // 2-2.5h = yellow/soon
-// above 2.5h = red/overdue
-
-function getFeedUrgency(minutesSinceLastFeed: number | null): {
-  color: string;
-  bg: string;
-  label: string;
-  pulse: boolean;
-} {
-  if (minutesSinceLastFeed === null)
-    return { color: "text-brown-lighter", bg: "bg-white", label: "", pulse: false };
-
-  if (minutesSinceLastFeed < FEED_OK)
-    return {
-      color: "text-green-700",
-      bg: "bg-green-100",
-      label: "All good",
-      pulse: false,
-    };
-  if (minutesSinceLastFeed < FEED_SOON)
-    return {
-      color: "text-amber-700",
-      bg: "bg-amber-100",
-      label: "Feed soon",
-      pulse: false,
-    };
-  return {
-    color: "text-red-600",
-    bg: "bg-red-100",
-    label: "Feed now!",
-    pulse: true,
-  };
-}
-
-export default function Dashboard({ feedings, diapers }: Props) {
-  const progress = getFeedingProgress(feedings);
-  const nextFeed = predictNextFeed(feedings);
-  const urgency = getFeedUrgency(progress.timeSinceLastFeed);
-
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const todayDiapers = diapers.filter(
-    (d) => new Date(d.changed_at) >= todayStart
-  );
-  const wetCount = todayDiapers.filter(
-    (d) => d.type === "wet" || d.type === "both"
-  ).length;
-  const dirtyCount = todayDiapers.filter(
-    (d) => d.type === "dirty" || d.type === "both"
-  ).length;
-
-  const todayBottleFeeds = feedings.filter(
-    (f) => f.type === "bottle" && new Date(f.fed_at) >= todayStart
-  ).length;
-
-  const todaySnacks = feedings.filter(
-    (f) => f.type === "breast_snack" && new Date(f.fed_at) >= todayStart
-  ).length;
+  const goalMin = SLEEP_GOAL_HOURS.min * 60;
+  const pct = Math.min((today.totalMin / goalMin) * 100, 100);
+  const barColor = pct >= 80 ? "bg-green-400" : pct >= 50 ? "bg-amber-300" : "bg-lavender";
 
   return (
     <div className="space-y-3">
-      {/* Feed urgency banner */}
-      {progress.lastFeedTime && progress.timeSinceLastFeed! >= FEED_OK && (
-        <div
-          className={`${urgency.bg} rounded-2xl p-4 flex items-center gap-3 ${urgency.pulse ? "animate-pulse" : ""}`}
-        >
-          <span className="text-2xl">
-            {progress.timeSinceLastFeed! >= FEED_SOON
-              ? "\u26A0\uFE0F"
-              : "\u23F0"}
-          </span>
-          <div className="flex-1">
-            <div className={`text-sm font-extrabold ${urgency.color}`}>
-              {urgency.label}
-            </div>
-            <div className="text-xs font-medium text-brown-light">
-              Last fed {formatTimeSince(progress.timeSinceLastFeed!)} &middot;
-              Recommended every 2-3h
-            </div>
+      {/* Hero: asleep / awake */}
+      {active ? (
+        <div className="bg-lavender-light rounded-[20px] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xl">{active.kind === "night" ? "🌙" : "💤"}</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-brown-lighter">
+              Asleep &middot; {active.kind === "night" ? "Night" : "Nap"}
+            </span>
+          </div>
+          <div className="text-4xl font-extrabold text-brown">
+            {formatDuration(durationMin(active, now))}
+          </div>
+          <div className="text-xs text-brown-lighter mt-1">
+            Fell asleep at {format(new Date(active.started_at), "h:mm a")}
+          </div>
+          <button
+            onClick={onWake}
+            className="w-full mt-4 py-4 bg-sunny rounded-2xl text-lg font-extrabold text-brown active:scale-[0.98] transition-transform shadow-[0_4px_16px_rgba(255,228,92,0.3)]"
+          >
+            {"☀️"} Woke up
+          </button>
+        </div>
+      ) : (
+        <div className="bg-white rounded-[20px] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xl">{"☀️"}</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-brown-lighter">
+              Awake
+            </span>
+          </div>
+          {latest?.ended_at ? (
+            <>
+              <div className="text-4xl font-extrabold text-brown">
+                {formatDuration((now.getTime() - new Date(latest.ended_at).getTime()) / 60000)}
+              </div>
+              <div className="text-xs text-brown-lighter mt-1">
+                Woke up at {format(new Date(latest.ended_at), "h:mm a")}
+              </div>
+            </>
+          ) : (
+            <div className="text-sm text-brown-lighter">No sleep logged yet</div>
+          )}
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            <button
+              onClick={() => onStart("nap")}
+              className={`py-4 rounded-2xl text-base font-extrabold text-brown active:scale-95 transition-transform ${
+                suggested === "nap" ? "bg-lavender/60" : "bg-lavender-light"
+              }`}
+            >
+              {"💤"} Nap
+            </button>
+            <button
+              onClick={() => onStart("night")}
+              className={`py-4 rounded-2xl text-base font-extrabold text-brown active:scale-95 transition-transform ${
+                suggested === "night" ? "bg-lavender/60" : "bg-lavender-light"
+              }`}
+            >
+              {"🌙"} Bedtime
+            </button>
           </div>
         </div>
       )}
 
-      {/* Last feed status - hero card */}
+      {/* Today's totals */}
       <div className="bg-white rounded-[20px] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-xl">{"\uD83C\uDF7C"}</span>
+          <span className="text-xl">{"🛏️"}</span>
           <span className="text-xs font-bold uppercase tracking-wider text-brown-lighter">
-            Feeding
+            Today&apos;s Sleep
           </span>
         </div>
-
-        <div className="flex justify-between items-center">
-          <div>
-            <div className="text-4xl font-extrabold text-brown">
-              {progress.totalMl + progress.snackMl}
-              <span className="text-lg font-semibold text-brown-lighter ml-1">
-                ml
-              </span>
-              <span className="text-sm font-semibold text-brown-lighter/50 ml-2">
-                ({mlToOz(progress.totalMl + progress.snackMl)} oz)
-              </span>
-            </div>
-            <div className="text-xs text-brown-lighter mt-1">
-              {todayBottleFeeds} bottle{todayBottleFeeds !== 1 ? "s" : ""}
-              {todaySnacks > 0 &&
-                ` + ${todaySnacks} snack${todaySnacks !== 1 ? "s" : ""}`}
-            </div>
-          </div>
-          <div className="flex flex-col items-center gap-1">
-            {progress.lastFeedTime ? (
-              <>
-                <div
-                  className={`${urgency.bg} ${urgency.color} text-sm font-semibold px-3 py-1.5 rounded-full text-center`}
-                >
-                  {formatTimeSince(progress.timeSinceLastFeed!)}
-                </div>
-                {nextFeed && (
-                  <div className="text-xs text-brown-lighter text-center">
-                    Next ~{format(nextFeed, "h:mm a")}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="text-sm text-brown-lighter">No feeds yet</div>
-            )}
-          </div>
+        <div className="grid grid-cols-3 gap-2">
+          <Stat value={formatDuration(today.totalMin)} label="total" />
+          <Stat value={formatDuration(today.nightMin)} label="last night" />
+          <Stat
+            value={formatDuration(today.napMin)}
+            label={`${today.napCount} nap${today.napCount !== 1 ? "s" : ""}`}
+          />
         </div>
 
-        {/* Daily progress bar */}
-        {(() => {
-          // Claire's birthday: March 21, 2026
-          const birthday = new Date(2026, 2, 21);
-          const ageInDays = Math.floor(
-            (Date.now() - birthday.getTime()) / (1000 * 60 * 60 * 24)
-          );
-          const ageWeeks = Math.floor(ageInDays / 7);
-          const ageMonths = Math.floor(ageInDays / 30);
-
-          // Recommended daily intake by age (ml)
-          let dailyGoal: number;
-          let ageLabel: string;
-          if (ageInDays <= 2) {
-            dailyGoal = 60;
-            ageLabel = `Day ${ageInDays}`;
-          } else if (ageInDays <= 7) {
-            dailyGoal = 400;
-            ageLabel = `Day ${ageInDays}`;
-          } else if (ageInDays <= 14) {
-            dailyGoal = 500;
-            ageLabel = `${ageWeeks} week${ageWeeks !== 1 ? "s" : ""}`;
-          } else if (ageInDays <= 30) {
-            dailyGoal = 600;
-            ageLabel = `${ageWeeks} weeks`;
-          } else if (ageMonths <= 2) {
-            dailyGoal = 700;
-            ageLabel = `${ageMonths} month${ageMonths !== 1 ? "s" : ""}`;
-          } else if (ageMonths <= 4) {
-            dailyGoal = 800;
-            ageLabel = `${ageMonths} months`;
-          } else if (ageMonths <= 6) {
-            dailyGoal = 900;
-            ageLabel = `${ageMonths} months`;
-          } else {
-            dailyGoal = 900;
-            ageLabel = `${ageMonths} months`;
-          }
-
-          const totalIntake = progress.totalMl + progress.snackMl;
-          const pct = Math.min((totalIntake / dailyGoal) * 100, 100);
-          const barColor =
-            pct >= 80
-              ? "bg-green-400"
-              : pct >= 50
-                ? "bg-amber-300"
-                : "bg-peach";
-          return (
-            <div className="mt-4">
-              <div className="flex justify-between items-baseline mb-1.5">
-                <span className="text-xs font-bold text-brown-lighter">
-                  Daily Goal
-                </span>
-                <span className="text-xs font-bold text-brown">
-                  {totalIntake} / {dailyGoal} ml
-                  <span className="text-brown-lighter/50 ml-1">
-                    ({mlToOz(totalIntake)} / {mlToOz(dailyGoal)} oz)
-                  </span>
-                </span>
-              </div>
-              <div className="w-full h-3 bg-cream-dark rounded-full overflow-hidden">
-                <div
-                  className={`h-full ${barColor} rounded-full transition-all duration-500`}
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-              <div className="text-[10px] font-semibold text-brown-lighter/50 mt-1 flex justify-between">
-                <span>Claire is {ageLabel} old</span>
-                <span>{Math.round(pct)}% of recommended</span>
-              </div>
-            </div>
-          );
-        })()}
-      </div>
-
-      {/* Diapers */}
-      <div className="bg-white rounded-[20px] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-xl">{"\uD83D\uDC76"}</span>
-          <span className="text-xs font-bold uppercase tracking-wider text-brown-lighter">
-            Diapers
-          </span>
-        </div>
-        <div className="flex items-center gap-6">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-3xl font-extrabold text-sky-dark">
-              {wetCount}
-            </span>
-            <span className="text-sm font-medium text-brown-lighter">wet</span>
-          </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-3xl font-extrabold text-sunny-dark">
-              {dirtyCount}
-            </span>
-            <span className="text-sm font-medium text-brown-lighter">
-              dirty
+        <div className="mt-4">
+          <div className="flex justify-between items-baseline mb-1.5">
+            <span className="text-xs font-bold text-brown-lighter">Daily Goal</span>
+            <span className="text-xs font-bold text-brown">
+              {formatDuration(today.totalMin)} / {SLEEP_GOAL_HOURS.min}-{SLEEP_GOAL_HOURS.max}h
             </span>
           </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-3xl font-extrabold text-brown-lighter">
-              {todayDiapers.length}
-            </span>
-            <span className="text-sm font-medium text-brown-lighter">
-              total
-            </span>
+          <div className="w-full h-3 bg-cream-dark rounded-full overflow-hidden">
+            <div
+              className={`h-full ${barColor} rounded-full transition-all duration-500`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <div className="text-[10px] font-semibold text-brown-lighter/50 mt-1 flex justify-between">
+            <span>Claire is {ageLabel(now)} old</span>
+            <span>{Math.round(pct)}% of recommended</span>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div>
+      <div className="text-2xl font-extrabold text-brown">{value}</div>
+      <div className="text-xs font-medium text-brown-lighter">{label}</div>
     </div>
   );
 }

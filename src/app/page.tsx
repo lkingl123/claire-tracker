@@ -2,145 +2,75 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { Feeding, Diaper } from "@/lib/types";
-import { setupNotifications, startFeedReminder } from "@/lib/notifications";
+import { Sleep, SleepKind } from "@/lib/types";
+import { dayKey, endSleep, fetchRecentSleeps, sleepDayKey, startSleep } from "@/lib/sleep";
 import Dashboard from "@/components/Dashboard";
-import Timeline from "@/components/Timeline";
-import BottleFeedModal from "@/components/BottleFeedModal";
-import BreastSnackModal from "@/components/BreastSnackModal";
-import DiaperModal from "@/components/DiaperModal";
+import SleepRow from "@/components/SleepRow";
+import SleepFormModal, { SleepInput } from "@/components/SleepFormModal";
 import HistoryView from "@/components/HistoryView";
 import SiriGuide from "@/components/SiriGuide";
-import EditEntryModal from "@/components/EditEntryModal";
 
-type Modal = "bottle" | "breast" | "diaper" | null;
-type EditTarget = { kind: "feeding"; data: Feeding } | { kind: "diaper"; data: Diaper } | null;
+// "new" = add a past sleep, Sleep = edit that one
+type FormTarget = "new" | Sleep | null;
 
 export default function Home() {
-  const [feedings, setFeedings] = useState<Feeding[]>([]);
-  const [feedingsWithLast, setFeedingsWithLast] = useState<Feeding[]>([]);
-  const [diapers, setDiapers] = useState<Diaper[]>([]);
-  const [modal, setModal] = useState<Modal>(null);
+  const [sleeps, setSleeps] = useState<Sleep[]>([]);
+  const [now, setNow] = useState(new Date());
   const [loading, setLoading] = useState(true);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showSiri, setShowSiri] = useState(false);
-  const [editTarget, setEditTarget] = useState<EditTarget>(null);
+  const [form, setForm] = useState<FormTarget>(null);
 
   const loadData = useCallback(async () => {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    const [feedRes, diaperRes, lastFeedRes] = await Promise.all([
-      supabase
-        .from("feedings")
-        .select("*")
-        .gte("fed_at", todayStart.toISOString())
-        .order("fed_at", { ascending: false }),
-      supabase
-        .from("diapers")
-        .select("*")
-        .gte("changed_at", todayStart.toISOString())
-        .order("changed_at", { ascending: false }),
-      // Always fetch the most recent feed (even from yesterday) for "last fed X ago"
-      supabase
-        .from("feedings")
-        .select("*")
-        .order("fed_at", { ascending: false })
-        .limit(1),
-    ]);
-
-    if (feedRes.data) {
-      const todayFeedings = feedRes.data;
-      setFeedings(todayFeedings);
-      // Include last feed (even from yesterday) for Dashboard timer
-      const withLast = [...todayFeedings];
-      if (lastFeedRes.data?.[0]) {
-        const lastFeed = lastFeedRes.data[0];
-        const alreadyIncluded = todayFeedings.some((f) => f.id === lastFeed.id);
-        if (!alreadyIncluded) {
-          withLast.push(lastFeed);
-        }
-      }
-      setFeedingsWithLast(withLast);
-    }
-    if (diaperRes.data) setDiapers(diaperRes.data);
+    setSleeps(await fetchRecentSleeps());
+    setNow(new Date());
     setLoading(false);
   }, []);
 
+  // Refresh every 30s so timers tick and both phones stay in sync
   useEffect(() => {
     loadData();
     const interval = setInterval(loadData, 30000);
     return () => clearInterval(interval);
   }, [loadData]);
 
-  useEffect(() => {
-    setupNotifications().then(setNotificationsEnabled);
-  }, []);
-
-  useEffect(() => {
-    if (feedings.length > 0) {
-      const lastFeed = new Date(feedings[0].fed_at);
-      startFeedReminder(lastFeed, 120); // 2 hours
-    }
-  }, [feedings]);
-
-  const handleBottleFeed = async (ml: number) => {
-    setModal(null);
-    const { error } = await supabase.from("feedings").insert({
-      type: "bottle",
-      amount_ml: ml,
-      fed_at: new Date().toISOString(),
-    });
-    if (!error) loadData();
+  const handleStart = async (kind: SleepKind) => {
+    await startSleep(kind);
+    loadData();
   };
 
-  const handleBreastSnack = async (ml: number) => {
-    setModal(null);
-    const { error } = await supabase.from("feedings").insert({
-      type: "breast_snack",
-      amount_ml: ml,
-      fed_at: new Date().toISOString(),
-    });
-    if (!error) loadData();
+  const handleWake = async () => {
+    await endSleep();
+    loadData();
   };
 
-  const handleDiaper = async (type: "wet" | "dirty" | "both") => {
-    setModal(null);
-    const { error } = await supabase.from("diapers").insert({
-      type,
-      changed_at: new Date().toISOString(),
-    });
-    if (!error) loadData();
-  };
-
-  const handleEditEntry = async (
-    kind: "feeding" | "diaper",
-    id: string,
-    updates: Record<string, unknown>
-  ) => {
-    if (kind === "feeding") {
-      await supabase.from("feedings").update(updates).eq("id", id);
-    } else {
-      await supabase.from("diapers").update(updates).eq("id", id);
+  const handleSave = async (input: SleepInput): Promise<string | null> => {
+    const { error } =
+      form === "new"
+        ? await supabase.from("sleeps").insert(input)
+        : await supabase.from("sleeps").update(input).eq("id", (form as Sleep).id);
+    if (error) {
+      // sleeps_one_active unique index
+      if (error.code === "23505") return "Claire is already marked as asleep. Wake her up first.";
+      return "Couldn't save. Please try again.";
     }
     loadData();
+    return null;
   };
 
-  const handleDeleteFeeding = async (id: string) => {
-    await supabase.from("feedings").delete().eq("id", id);
+  const handleDelete = async (id: string) => {
+    await supabase.from("sleeps").delete().eq("id", id);
     loadData();
   };
 
-  const handleDeleteDiaper = async (id: string) => {
-    await supabase.from("diapers").delete().eq("id", id);
-    loadData();
-  };
+  // Today's log: today's naps, last night, and anything still in progress
+  const todayKey = dayKey(now);
+  const todaySleeps = sleeps.filter((s) => !s.ended_at || sleepDayKey(s) === todayKey);
 
   if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-3">
-        <div className="text-4xl animate-bounce">{"\uD83C\uDF7C"}</div>
+        <div className="text-4xl animate-bounce">{"🌙"}</div>
         <div className="text-brown-lighter font-semibold">Loading...</div>
       </div>
     );
@@ -151,121 +81,68 @@ export default function Home() {
       {/* Header */}
       <div className="px-5 pt-8 pb-2">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-extrabold text-brown">
-            Hi, Claire {"\uD83C\uDF38"}
-          </h1>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowSiri(true)}
-              className="text-xs font-bold text-brown-light bg-lavender-light/50 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
-            >
-              {"\uD83C\uDF99\uFE0F"} Siri
-            </button>
-            {!notificationsEnabled && (
-              <button
-                onClick={async () => {
-                  const enabled = await setupNotifications();
-                  setNotificationsEnabled(enabled);
-                }}
-                className="text-xs font-bold text-peach-dark bg-peach/30 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
-              >
-                {"\uD83D\uDD14"} Notify
-              </button>
-            )}
-          </div>
+          <h1 className="text-2xl font-extrabold text-brown">Hi, Claire {"🌸"}</h1>
+          <button
+            onClick={() => setShowSiri(true)}
+            className="text-xs font-bold text-brown-light bg-lavender-light/50 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+          >
+            {"🎙️"} Siri
+          </button>
         </div>
       </div>
 
-      {/* Dashboard */}
       <div className="px-5 pt-3">
-        <Dashboard feedings={feedingsWithLast} diapers={diapers} />
+        <Dashboard sleeps={sleeps} now={now} onStart={handleStart} onWake={handleWake} />
       </div>
 
-      {/* Action buttons */}
-      <div className="px-5 py-5">
-        <div className="grid grid-cols-3 gap-3">
-          <button
-            onClick={() => setModal("bottle")}
-            className="flex flex-col items-center gap-2 py-5 bg-peach/50 rounded-[20px] active:scale-95 transition-transform shadow-[0_2px_10px_rgba(255,180,160,0.2)]"
-          >
-            <span className="text-3xl">{"\uD83C\uDF7C"}</span>
-            <span className="text-xs font-extrabold text-brown">Bottle</span>
-          </button>
-          <button
-            onClick={() => setModal("breast")}
-            className="flex flex-col items-center gap-2 py-5 bg-blush/40 rounded-[20px] active:scale-95 transition-transform shadow-[0_2px_10px_rgba(240,157,170,0.2)]"
-          >
-            <span className="text-3xl">{"\uD83E\uDD31"}</span>
-            <span className="text-xs font-extrabold text-brown">Snack</span>
-          </button>
-          <button
-            onClick={() => setModal("diaper")}
-            className="flex flex-col items-center gap-2 py-5 bg-mint/40 rounded-[20px] active:scale-95 transition-transform shadow-[0_2px_10px_rgba(141,212,176,0.2)]"
-          >
-            <span className="text-3xl">{"\uD83D\uDC76"}</span>
-            <span className="text-xs font-extrabold text-brown">Diaper</span>
-          </button>
-        </div>
+      <div className="px-5 py-4">
+        <button
+          onClick={() => setForm("new")}
+          className="w-full py-3 bg-white rounded-2xl text-sm font-extrabold text-brown-light shadow-[0_1px_6px_rgba(0,0,0,0.04)] active:scale-[0.98] transition-transform"
+        >
+          + Add a past sleep
+        </button>
       </div>
 
-      {/* Timeline */}
+      {/* Today's log */}
       <div className="flex-1 px-5 overflow-y-auto hide-scrollbar">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-extrabold text-brown-lighter uppercase tracking-wider">
-            Today&apos;s Log
+            Today&apos;s Sleep
           </h2>
           <button
             onClick={() => setShowHistory(true)}
-            className="text-xs font-bold text-peach-dark bg-peach/25 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+            className="text-xs font-bold text-brown-light bg-lavender-light/60 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
           >
-            {"\uD83D\uDCCB"} History
+            {"📋"} History
           </button>
         </div>
-        <Timeline
-          feedings={feedings}
-          diapers={diapers}
-          onDeleteFeeding={handleDeleteFeeding}
-          onDeleteDiaper={handleDeleteDiaper}
-          onEditEntry={setEditTarget}
-        />
+        {todaySleeps.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-4xl mb-3">{"🌟"}</div>
+            <div className="text-brown-lighter font-semibold">No sleep logged today</div>
+            <div className="text-brown-lighter/60 text-sm mt-1">
+              Tap Nap or Bedtime when she falls asleep
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {todaySleeps.map((s) => (
+              <SleepRow key={s.id} sleep={s} now={now} onEdit={setForm} onDelete={handleDelete} />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Edit Entry */}
-      {editTarget && (
-        <EditEntryModal
-          entry={editTarget}
-          onSave={handleEditEntry}
-          onClose={() => setEditTarget(null)}
+      {form && (
+        <SleepFormModal
+          sleep={form === "new" ? undefined : form}
+          onSave={handleSave}
+          onClose={() => setForm(null)}
         />
       )}
-
-      {/* Siri Guide */}
       {showSiri && <SiriGuide onClose={() => setShowSiri(false)} />}
-
-      {/* History */}
-      {showHistory && (
-        <HistoryView onClose={() => setShowHistory(false)} />
-      )}
-
-      {/* Modals */}
-      {modal === "bottle" && (
-        <BottleFeedModal
-          onSubmit={handleBottleFeed}
-          onClose={() => setModal(null)}
-        />
-      )}
-      {modal === "breast" && (
-        <BreastSnackModal
-          onSubmit={handleBreastSnack}
-          onClose={() => setModal(null)}
-        />
-      )}
-      {modal === "diaper" && (
-        <DiaperModal
-          onSubmit={handleDiaper}
-          onClose={() => setModal(null)}
-        />
-      )}
+      {showHistory && <HistoryView onClose={() => setShowHistory(false)} />}
     </div>
   );
 }
