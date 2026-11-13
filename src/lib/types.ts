@@ -1,10 +1,9 @@
-export type SleepKind = "nap" | "night";
-
-export interface Sleep {
+// A nap. Stored in the `sleeps` table (kind is always "nap").
+// She logs minutes; we save it as ended_at = when she woke, started_at = ended_at - minutes.
+export interface Nap {
   id: string;
-  kind: SleepKind;
   started_at: string;
-  ended_at: string | null; // null = still asleep
+  ended_at: string;
   notes: string | null;
   created_at: string;
 }

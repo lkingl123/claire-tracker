@@ -2,60 +2,44 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { Sleep, SleepKind } from "@/lib/types";
-import { dayKey, endSleep, fetchRecentSleeps, sleepDayKey, startSleep } from "@/lib/sleep";
+import { Nap } from "@/lib/types";
+import { dayKey, fetchRecentNaps, logNap, napDayKey, napRow } from "@/lib/naps";
 import Dashboard from "@/components/Dashboard";
-import SleepRow from "@/components/SleepRow";
-import SleepFormModal, { SleepInput } from "@/components/SleepFormModal";
+import NapRow from "@/components/NapRow";
+import NapModal from "@/components/NapModal";
 import HistoryView from "@/components/HistoryView";
 import SiriGuide from "@/components/SiriGuide";
 
-// "new" = add a past sleep, Sleep = edit that one
-type FormTarget = "new" | Sleep | null;
+// "new" = log a nap, Nap = edit that one
+type ModalTarget = "new" | Nap | null;
 
 export default function Home() {
-  const [sleeps, setSleeps] = useState<Sleep[]>([]);
+  const [naps, setNaps] = useState<Nap[]>([]);
   const [now, setNow] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [showSiri, setShowSiri] = useState(false);
-  const [form, setForm] = useState<FormTarget>(null);
+  const [modal, setModal] = useState<ModalTarget>(null);
 
   const loadData = useCallback(async () => {
-    setSleeps(await fetchRecentSleeps());
+    setNaps(await fetchRecentNaps());
     setNow(new Date());
     setLoading(false);
   }, []);
 
-  // Refresh every 30s so timers tick and both phones stay in sync
+  // Refresh every 30s so "awake" ticks and both phones stay in sync
   useEffect(() => {
     loadData();
     const interval = setInterval(loadData, 30000);
     return () => clearInterval(interval);
   }, [loadData]);
 
-  const handleStart = async (kind: SleepKind) => {
-    await startSleep(kind);
+  const handleSave = async (minutes: number, wokeAt: Date) => {
+    const target = modal;
+    setModal(null);
+    if (target === "new") await logNap(minutes, wokeAt);
+    else if (target) await supabase.from("sleeps").update(napRow(minutes, wokeAt)).eq("id", target.id);
     loadData();
-  };
-
-  const handleWake = async () => {
-    await endSleep();
-    loadData();
-  };
-
-  const handleSave = async (input: SleepInput): Promise<string | null> => {
-    const { error } =
-      form === "new"
-        ? await supabase.from("sleeps").insert(input)
-        : await supabase.from("sleeps").update(input).eq("id", (form as Sleep).id);
-    if (error) {
-      // sleeps_one_active unique index
-      if (error.code === "23505") return "Claire is already marked as asleep. Wake her up first.";
-      return "Couldn't save. Please try again.";
-    }
-    loadData();
-    return null;
   };
 
   const handleDelete = async (id: string) => {
@@ -63,14 +47,12 @@ export default function Home() {
     loadData();
   };
 
-  // Today's log: today's naps, last night, and anything still in progress
-  const todayKey = dayKey(now);
-  const todaySleeps = sleeps.filter((s) => !s.ended_at || sleepDayKey(s) === todayKey);
+  const todayNaps = naps.filter((n) => napDayKey(n) === dayKey(now));
 
   if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-3">
-        <div className="text-4xl animate-bounce">{"🌙"}</div>
+        <div className="text-4xl animate-bounce">{"💤"}</div>
         <div className="text-brown-lighter font-semibold">Loading...</div>
       </div>
     );
@@ -91,24 +73,15 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="px-5 pt-3">
-        <Dashboard sleeps={sleeps} now={now} onStart={handleStart} onWake={handleWake} />
+      <div className="px-5 pt-3 pb-5">
+        <Dashboard naps={naps} now={now} onLogNap={() => setModal("new")} />
       </div>
 
-      <div className="px-5 py-4">
-        <button
-          onClick={() => setForm("new")}
-          className="w-full py-3 bg-white rounded-2xl text-sm font-extrabold text-brown-light shadow-[0_1px_6px_rgba(0,0,0,0.04)] active:scale-[0.98] transition-transform"
-        >
-          + Add a past sleep
-        </button>
-      </div>
-
-      {/* Today's log */}
+      {/* Today's naps */}
       <div className="flex-1 px-5 overflow-y-auto hide-scrollbar">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-extrabold text-brown-lighter uppercase tracking-wider">
-            Today&apos;s Sleep
+            Today&apos;s Naps
           </h2>
           <button
             onClick={() => setShowHistory(true)}
@@ -117,28 +90,26 @@ export default function Home() {
             {"📋"} History
           </button>
         </div>
-        {todaySleeps.length === 0 ? (
+        {todayNaps.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-3">{"🌟"}</div>
-            <div className="text-brown-lighter font-semibold">No sleep logged today</div>
-            <div className="text-brown-lighter/60 text-sm mt-1">
-              Tap Nap or Bedtime when she falls asleep
-            </div>
+            <div className="text-brown-lighter font-semibold">No naps logged today</div>
+            <div className="text-brown-lighter/60 text-sm mt-1">Tap &ldquo;Log a nap&rdquo; when she wakes up</div>
           </div>
         ) : (
           <div className="space-y-2.5">
-            {todaySleeps.map((s) => (
-              <SleepRow key={s.id} sleep={s} now={now} onEdit={setForm} onDelete={handleDelete} />
+            {todayNaps.map((n) => (
+              <NapRow key={n.id} nap={n} onEdit={setModal} onDelete={handleDelete} />
             ))}
           </div>
         )}
       </div>
 
-      {form && (
-        <SleepFormModal
-          sleep={form === "new" ? undefined : form}
+      {modal && (
+        <NapModal
+          nap={modal === "new" ? undefined : modal}
           onSave={handleSave}
-          onClose={() => setForm(null)}
+          onClose={() => setModal(null)}
         />
       )}
       {showSiri && <SiriGuide onClose={() => setShowSiri(false)} />}

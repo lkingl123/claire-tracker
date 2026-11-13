@@ -1,15 +1,16 @@
 # Claire Tracker - Architecture
 
-> **2026-11-13: switched to sleep-only tracking.** Feeding/diaper UI, voice commands, push reminders and the
+> **2026-11-13: switched to nap-only tracking.** Feeding/diaper UI, voice commands, push reminders and the
 > feed-check cron were removed. The old version is tagged `backup-feeding-diaper-v1` in git, and the
-> `feedings` / `diapers` tables are still in Supabase (untouched). Sleep data lives in `sleeps`
-> (schema: `supabase/sleeps.sql`). All sleep logic is in `src/lib/sleep.ts`; the app, `/api/speak` (Siri),
-> `/api/alexa` and `/api/status` all use it. Sections below describing feeds/diapers are historical.
+> `feedings` / `diapers` tables are still in Supabase (untouched). Naps live in the `sleeps` table
+> (schema: `supabase/sleeps.sql`, `kind` is always `nap`). She logs a nap as a number of minutes;
+> it's stored as `ended_at` = when she woke (default now) and `started_at` = ended_at - minutes.
+> All nap logic is in `src/lib/naps.ts`; the app, `/api/speak` (Siri), `/api/alexa` and `/api/status` use it.
+> Sections below describing feeds/diapers are historical.
 >
-> - Naps belong to the day they start; night sleep belongs to the morning it ends in (start + 12h).
 > - Day boundaries use America/Denver even on the server (Vercel runs in UTC).
-> - Siri phrases: `nap`, `bedtime`, `asleep`, `woke up` / `awake`, `status`, `undo`.
-> - Alexa intents: StartNapIntent, StartNightIntent, FellAsleepIntent, WokeUpIntent, SleepStatusIntent, UndoIntent.
+> - Siri phrases: `nap 45`, `nap 1 hour`, `status`, `undo`.
+> - Alexa intents: LogNapIntent (slots `minutes`, `hours`), NapStatusIntent, UndoIntent.
 
 ## Overview
 Baby feeding and diaper tracker for Claire (born March 21, 2026). Web app + Alexa + Siri voice control.

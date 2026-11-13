@@ -4,72 +4,54 @@
       "invocationName": "baby tracker",
       "intents": [
         {
-          "name": "StartNapIntent",
+          "name": "LogNapIntent",
+          "slots": [
+            {
+              "name": "minutes",
+              "type": "AMAZON.NUMBER"
+            },
+            {
+              "name": "hours",
+              "type": "AMAZON.NUMBER"
+            }
+          ],
           "samples": [
-            "claire is napping",
-            "she is napping",
-            "start a nap",
-            "nap time",
+            "log a {minutes} minute nap",
+            "log {minutes} minute nap",
+            "nap {minutes} minutes",
+            "nap {minutes}",
+            "she napped {minutes} minutes",
+            "she napped for {minutes} minutes",
+            "claire napped {minutes} minutes",
+            "claire napped for {minutes} minutes",
+            "she slept {minutes} minutes",
+            "she slept for {minutes} minutes",
+            "log a nap of {minutes} minutes",
+            "log a {hours} hour nap",
+            "she napped {hours} hours",
+            "she napped for {hours} hours",
+            "she napped for {hours} hour",
+            "claire napped for {hours} hour",
+            "she napped for {hours} hour and {minutes} minutes",
+            "she napped for {hours} hours and {minutes} minutes",
             "log a nap",
-            "she went down for a nap",
-            "claire is taking a nap",
-            "nap"
+            "log nap"
           ]
         },
         {
-          "name": "StartNightIntent",
+          "name": "NapStatusIntent",
           "samples": [
-            "bedtime",
-            "it is bedtime",
-            "claire went to bed",
-            "she went to bed",
-            "start night sleep",
-            "log bedtime",
-            "goodnight",
-            "night night"
-          ]
-        },
-        {
-          "name": "FellAsleepIntent",
-          "samples": [
-            "claire fell asleep",
-            "she fell asleep",
-            "claire is asleep",
-            "she is asleep",
-            "claire is sleeping",
-            "she is sleeping",
-            "log sleep",
-            "start sleep"
-          ]
-        },
-        {
-          "name": "WokeUpIntent",
-          "samples": [
-            "claire woke up",
-            "she woke up",
-            "claire is awake",
-            "she is awake",
-            "she is up",
-            "claire is up",
-            "log wake up",
-            "wake up",
-            "end sleep"
-          ]
-        },
-        {
-          "name": "SleepStatusIntent",
-          "samples": [
-            "how is claire sleeping",
+            "how are her naps",
+            "how are her naps today",
             "how is claire doing",
-            "how long has she been asleep",
+            "how is claire sleeping",
+            "how many naps today",
+            "how many naps has she had",
             "how long has she been awake",
-            "how long has she slept",
-            "how much has she slept today",
-            "is claire asleep",
-            "sleep status",
+            "when was her last nap",
+            "nap status",
             "status",
-            "give me a summary",
-            "what is the status"
+            "give me a summary"
           ]
         },
         {

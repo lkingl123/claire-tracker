@@ -1,14 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  deleteLastSleep,
-  durationMin,
-  endSleep,
-  formatDurationSpoken,
-  kindForTime,
-  startSleep,
-  statusSpeech,
-} from "@/lib/sleep";
-import { SleepKind } from "@/lib/types";
+import { deleteLastNap, formatMinutesSpoken, logNap, napMinutes, statusSpeech } from "@/lib/naps";
 
 function buildResponse(speech: string, shouldEnd: boolean = true) {
   return NextResponse.json({
@@ -21,34 +12,15 @@ function buildResponse(speech: string, shouldEnd: boolean = true) {
   });
 }
 
-async function handleStart(kind: SleepKind) {
-  const { sleep, alreadyAsleep } = await startSleep(kind);
-  if (alreadyAsleep && sleep)
-    return buildResponse(`Claire is already asleep, for ${formatDurationSpoken(durationMin(sleep))} so far.`);
-  if (!sleep) return buildResponse("Sorry, I couldn't log that.");
-  return buildResponse(kind === "night" ? "Goodnight Claire! Bedtime logged." : "Nap started. Sweet dreams!");
-}
-
-async function handleWake() {
-  const finished = await endSleep();
-  if (!finished) return buildResponse("Claire wasn't marked as asleep.");
-  return buildResponse(`Good morning! Claire slept for ${formatDurationSpoken(durationMin(finished))}.`);
-}
-
-async function handleUndo() {
-  const removed = await deleteLastSleep();
-  if (!removed) return buildResponse("Nothing to undo.");
-  return buildResponse(`Undone! Removed the last ${removed.kind === "night" ? "night sleep" : "nap"}.`);
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const requestType = body?.request?.type;
     const intentName = body?.request?.intent?.name;
+    const slots = body?.request?.intent?.slots || {};
 
     if (requestType === "LaunchRequest") {
-      return buildResponse(`${await statusSpeech()} What would you like to log?`, false);
+      return buildResponse(`${await statusSpeech()} How long was her nap?`, false);
     }
 
     if (
@@ -61,22 +33,29 @@ export async function POST(request: NextRequest) {
 
     if (intentName === "AMAZON.HelpIntent") {
       return buildResponse(
-        "You can say things like: Claire is napping, it's bedtime, Claire woke up, or how is Claire sleeping.",
+        "You can say things like: log a 45 minute nap, how are her naps today, or undo.",
         false
       );
     }
 
-    if (intentName === "StartNapIntent") return handleStart("nap");
-    if (intentName === "StartNightIntent") return handleStart("night");
-    if (intentName === "FellAsleepIntent") return handleStart(kindForTime());
-    if (intentName === "WokeUpIntent") return handleWake();
-    if (intentName === "SleepStatusIntent") return buildResponse(await statusSpeech());
-    if (intentName === "UndoIntent") return handleUndo();
+    if (intentName === "LogNapIntent") {
+      const hours = parseFloat(slots.hours?.value) || 0;
+      const minutes = Math.round(hours * 60) + (parseInt(slots.minutes?.value) || 0);
+      if (minutes <= 0) return buildResponse("How many minutes was her nap?", false);
+      const { error } = await logNap(minutes);
+      if (error) return buildResponse("Sorry, I couldn't log that nap.");
+      return buildResponse(`Done! Logged a nap of ${formatMinutesSpoken(minutes)}.`);
+    }
 
-    return buildResponse(
-      "I didn't understand that. Try saying: Claire is napping, or Claire woke up.",
-      false
-    );
+    if (intentName === "NapStatusIntent") return buildResponse(await statusSpeech());
+
+    if (intentName === "UndoIntent") {
+      const removed = await deleteLastNap();
+      if (!removed) return buildResponse("Nothing to undo.");
+      return buildResponse(`Undone! Removed the last nap, ${formatMinutesSpoken(napMinutes(removed))}.`);
+    }
+
+    return buildResponse("I didn't understand that. Try saying: log a 45 minute nap.", false);
   } catch {
     return buildResponse("Sorry, something went wrong. Please try again.");
   }

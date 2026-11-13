@@ -3,33 +3,27 @@
 import { useState } from "react";
 import { format, subDays } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from "recharts";
-import { Sleep } from "@/lib/types";
-import { dayKey, formatDuration, sleepsForDay, summarize } from "@/lib/sleep";
+import { Nap } from "@/lib/types";
+import { dayKey, formatMinutes, napsForDay, totalMinutes } from "@/lib/naps";
 
 interface DayData {
   date: string;
   label: string;
-  nightH: number;
-  napH: number;
-  nightMin: number;
-  napMin: number;
-  napCount: number;
+  minutes: number;
+  count: number;
 }
 
-function buildDailyData(sleeps: Sleep[], days: number): DayData[] {
+function buildDailyData(naps: Nap[], days: number): DayData[] {
   const now = new Date();
   const data: DayData[] = [];
   for (let i = days - 1; i >= 0; i--) {
     const day = subDays(now, i);
-    const s = summarize(sleepsForDay(sleeps, dayKey(day)), now);
+    const list = napsForDay(naps, dayKey(day));
     data.push({
       date: dayKey(day),
       label: i === 0 ? "Today" : i === 1 ? "Yday" : format(day, "M/d"),
-      nightH: +(s.nightMin / 60).toFixed(2),
-      napH: +(s.napMin / 60).toFixed(2),
-      nightMin: s.nightMin,
-      napMin: s.napMin,
-      napCount: s.napCount,
+      minutes: totalMinutes(list),
+      count: list.length,
     });
   }
   return data;
@@ -37,11 +31,12 @@ function buildDailyData(sleeps: Sleep[], days: number): DayData[] {
 
 const RANGES: (7 | 30 | 90)[] = [7, 30, 90];
 
-export default function SleepChart({ sleeps }: { sleeps: Sleep[] }) {
+export default function NapChart({ naps }: { naps: Nap[] }) {
   const [selectedDay, setSelectedDay] = useState<DayData | null>(null);
   const [range, setRange] = useState<7 | 30 | 90>(7);
 
-  const data = buildDailyData(sleeps, range);
+  const data = buildDailyData(naps, range);
+  const max = Math.max(...data.map((d) => d.minutes), 60);
   const tickInterval = range >= 90 ? 9 : range >= 30 ? 4 : 0;
 
   return (
@@ -84,14 +79,13 @@ export default function SleepChart({ sleeps }: { sleeps: Sleep[] }) {
               interval={tickInterval}
             />
             <YAxis
-              domain={[0, 16]}
-              ticks={[0, 4, 8, 12, 16]}
+              domain={[0, Math.ceil(max / 60) * 60]}
               tick={{ fontSize: 9, fill: "#9B8585" }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v) => `${v}h`}
+              tickFormatter={(v) => `${v}m`}
             />
-            <Bar dataKey="nightH" stackId="h">
+            <Bar dataKey="minutes" radius={[4, 4, 0, 0]}>
               {data.map((d) => (
                 <Cell
                   key={d.date}
@@ -100,28 +94,8 @@ export default function SleepChart({ sleeps }: { sleeps: Sleep[] }) {
                 />
               ))}
             </Bar>
-            <Bar dataKey="napH" stackId="h" radius={[4, 4, 0, 0]}>
-              {data.map((d) => (
-                <Cell
-                  key={d.date}
-                  fill={selectedDay?.date === d.date ? "#8DC0E0" : "#B8D8F0"}
-                  cursor="pointer"
-                />
-              ))}
-            </Bar>
           </BarChart>
         </ResponsiveContainer>
-      </div>
-
-      <div className="flex items-center gap-4 mt-2">
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-sm bg-lavender" />
-          <span className="text-[10px] font-bold text-brown-lighter">Night</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-sm bg-sky" />
-          <span className="text-[10px] font-bold text-brown-lighter">Naps</span>
-        </div>
       </div>
 
       {selectedDay && (
@@ -131,14 +105,9 @@ export default function SleepChart({ sleeps }: { sleeps: Sleep[] }) {
               ? selectedDay.label
               : format(new Date(selectedDay.date + "T12:00:00"), "EEEE, MMM d")}
           </div>
-          <div className="flex gap-3 text-[11px] font-bold text-brown-light">
-            <span>{"🌙"} {formatDuration(selectedDay.nightMin)}</span>
-            <span>
-              {"💤"} {formatDuration(selectedDay.napMin)} ({selectedDay.napCount})
-            </span>
-            <span className="text-brown-lighter">
-              Total: {formatDuration(selectedDay.nightMin + selectedDay.napMin)}
-            </span>
+          <div className="text-[11px] font-bold text-brown-light">
+            {"💤"} {selectedDay.count} nap{selectedDay.count !== 1 ? "s" : ""} &middot;{" "}
+            {formatMinutes(selectedDay.minutes)}
           </div>
         </div>
       )}

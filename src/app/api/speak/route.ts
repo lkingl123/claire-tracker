@@ -1,21 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SleepKind } from "@/lib/types";
-import {
-  deleteLastSleep,
-  durationMin,
-  endSleep,
-  formatDurationSpoken,
-  kindForTime,
-  startSleep,
-  statusSpeech,
-} from "@/lib/sleep";
+import { deleteLastNap, formatMinutesSpoken, logNap, napMinutes, statusSpeech } from "@/lib/naps";
+import { parseMinutes } from "@/lib/parseMinutes";
 
 // Siri Shortcut endpoint. Returns plain text so Siri can speak it directly.
 function say(text: string) {
   return new NextResponse(text, { headers: { "Content-Type": "text/plain" } });
 }
 
-// Match at word starts so "up" doesn't hit "update" and "nap" doesn't hit "snap"
 const has = (text: string, words: string[]) =>
   words.some((w) => new RegExp(`\\b${w}`).test(text));
 
@@ -23,44 +14,35 @@ async function handleSpeak(raw: string) {
   const text = raw.toLowerCase().trim();
 
   if (has(text, ["undo", "cancel", "delete last"])) {
-    const removed = await deleteLastSleep();
-    return say(removed ? `Undone! Removed the last ${removed.kind === "night" ? "night sleep" : "nap"}.` : "Nothing to undo.");
+    const removed = await deleteLastNap();
+    return say(removed ? `Undone! Removed the last nap, ${formatMinutesSpoken(napMinutes(removed))}.` : "Nothing to undo.");
   }
 
   if (has(text, ["status", "summary", "how", "last"])) {
     return say(await statusSpeech());
   }
 
-  // Check "awake" before "asleep" ("woke up" / "she's up" / "awake")
-  if (has(text, ["awake", "woke", "wake", "up\\b"])) {
-    const finished = await endSleep();
-    if (!finished) return say("Claire wasn't marked as asleep.");
-    return say(`Good morning! Claire slept for ${formatDurationSpoken(durationMin(finished))}.`);
+  const minutes = parseMinutes(text);
+  if (minutes && minutes > 0 && minutes <= 300) {
+    const { error } = await logNap(minutes);
+    if (error) return say("Sorry, I couldn't log that nap.");
+    return say(`Done! Logged a nap of ${formatMinutesSpoken(minutes)}.`);
   }
 
-  if (has(text, ["asleep", "sleep", "nap", "bed", "night"])) {
-    const kind: SleepKind = has(text, ["nap"])
-      ? "nap"
-      : has(text, ["bed", "night"])
-        ? "night"
-        : kindForTime();
-    const { sleep, alreadyAsleep } = await startSleep(kind);
-    if (alreadyAsleep && sleep)
-      return say(`Claire is already asleep, for ${formatDurationSpoken(durationMin(sleep))} so far.`);
-    if (!sleep) return say("Sorry, I couldn't log that.");
-    return say(kind === "night" ? "Goodnight Claire! Bedtime logged." : "Nap started. Sweet dreams!");
+  if (has(text, ["nap", "sleep", "slept"])) {
+    return say("How long? Say nap followed by the minutes, like nap 45.");
   }
 
-  return say(`I heard ${raw}. Try: nap, bedtime, woke up, status, or undo.`);
+  return say(`I heard ${raw}. Try: nap 45, status, or undo.`);
 }
 
-// GET /api/speak?q=nap
+// GET /api/speak?q=nap+45
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   return handleSpeak(searchParams.get("q") || "");
 }
 
-// POST /api/speak  body: { q: "nap" }
+// POST /api/speak  body: { q: "nap 45" }
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

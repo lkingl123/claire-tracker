@@ -3,8 +3,7 @@
 import { useState } from "react";
 
 const EXAMPLES = [
-  { category: "Fell Asleep", emoji: "\uD83D\uDCA4", bg: "bg-lavender-light/60", phrases: ["nap", "bedtime", "asleep"] },
-  { category: "Woke Up", emoji: "\u2600\uFE0F", bg: "bg-sunny/30", phrases: ["awake", "woke up"] },
+  { category: "Log a Nap", emoji: "\uD83D\uDCA4", bg: "bg-lavender-light/60", phrases: ["nap 45", "nap 30 minutes", "nap 1 hour"] },
   { category: "Check On Claire", emoji: "\uD83D\uDCCA", bg: "bg-sky/30", phrases: ["status", "undo"] },
 ];
 

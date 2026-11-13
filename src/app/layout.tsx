@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Claire Tracker",
-  description: "Sleep tracker for Claire",
+  description: "Nap tracker for Claire",
   manifest: "/manifest.json",
   icons: {
     icon: "/icon-192.png",
